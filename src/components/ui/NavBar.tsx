@@ -50,10 +50,10 @@ export default function NavBar({ userEmail }: { userEmail: string }) {
         <div className="flex items-center gap-3">
           <button
             onClick={handleLogout}
-            className="flex items-center gap-1.5 text-stone-400 hover:text-stone-700 text-sm transition-colors"
+            className="flex items-center gap-1.5 text-stone-500 hover:text-red-500 text-sm transition-colors p-1.5 rounded-lg hover:bg-red-50"
             aria-label="Log out"
           >
-            <LogOut size={15} />
+            <LogOut size={16} />
             <span className="hidden sm:inline">Log out</span>
           </button>
         </div>
