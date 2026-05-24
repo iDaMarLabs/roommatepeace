@@ -61,8 +61,8 @@ export async function sendDailyReminders(): Promise<{ sent: number; errors: numb
     .eq('status', 'pending')
 
   for (const row of choreAssignments ?? []) {
-    const profile = row.profile as { id: string; email: string; name: string | null } | null
-    const chore = row.chore as { title: string } | null
+    const profile = row.profile as unknown as { id: string; email: string; name: string | null } | null
+    const chore = row.chore as unknown as { title: string } | null
     if (!profile?.email || !chore) continue
 
     getOrCreate(profile.id, profile.email, profile.name).items.push({
@@ -79,8 +79,8 @@ export async function sendDailyReminders(): Promise<{ sent: number; errors: numb
     .eq('paid_status', false)
 
   for (const row of billShares ?? []) {
-    const profile = row.profile as { id: string; email: string; name: string | null } | null
-    const bill = row.bill as { title: string; due_date: string } | null
+    const profile = row.profile as unknown as { id: string; email: string; name: string | null } | null
+    const bill = row.bill as unknown as { title: string; due_date: string } | null
     if (!profile?.email || !bill) continue
     if (!dueDates.includes(bill.due_date)) continue
 

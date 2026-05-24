@@ -19,7 +19,7 @@ export async function getUserHousehold(): Promise<Household | null> {
     .limit(1)
     .maybeSingle()
 
-  return (data?.households as Household) ?? null
+  return (data?.households as unknown as Household) ?? null
 }
 
 export async function getHouseholdMembers(
