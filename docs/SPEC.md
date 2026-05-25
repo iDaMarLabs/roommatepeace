@@ -1,6 +1,6 @@
 # Roommate Peace — What Is and Is Not Built
 
-Updated 2026-05-24.
+Updated 2026-05-25.
 
 ## Built and Working
 
@@ -50,6 +50,7 @@ Updated 2026-05-24.
 - List all bills by due date with per-person share breakdown
 - Add bill: title, amount, due date — equal split across current members
 - Mark your share paid
+- Edit existing bill: title, amount, due date — recalculates equal shares for all members
 - Bills with `$0` show "Needs amount" indicator
 - Free plan: max 3 bills enforced at create
 

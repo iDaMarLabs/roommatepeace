@@ -95,6 +95,38 @@ export async function createBill(
   return { data: bill as Bill }
 }
 
+export async function updateBill(
+  billId: string,
+  title: string,
+  amountCents: number,
+  dueDate: string
+): Promise<{ error?: string }> {
+  const supabase = await createClient()
+
+  const { error: billError } = await supabase
+    .from('bills')
+    .update({ title, amount_cents: amountCents, due_date: dueDate })
+    .eq('id', billId)
+
+  if (billError) return { error: 'Failed to update bill.' }
+
+  const { data: shares } = await supabase
+    .from('bill_shares')
+    .select('id')
+    .eq('bill_id', billId)
+
+  if (!shares || shares.length === 0) return {}
+
+  const perPersonCents = Math.round(amountCents / shares.length)
+
+  await supabase
+    .from('bill_shares')
+    .update({ amount_cents: perPersonCents })
+    .eq('bill_id', billId)
+
+  return {}
+}
+
 export async function markSharePaid(shareId: string): Promise<boolean> {
   const supabase = await createClient()
   const { error } = await supabase
