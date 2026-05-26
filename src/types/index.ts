@@ -88,3 +88,11 @@ export interface HouseRule {
   active: boolean
   created_at: string
 }
+
+export interface RuleAcknowledgement {
+  id: string
+  rule_id: string
+  user_id: string
+  acknowledged_at: string
+  profile?: { id: string; name: string | null; email: string } | null
+}

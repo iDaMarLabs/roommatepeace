@@ -23,6 +23,10 @@ Updated 2026-05-25.
 - `/setup` → `POST /api/households` → creates household + inserts owner member
 - Seeds 12 default chores, 6 default bills ($0 placeholder), 8 default house rules
 
+### Navigation
+- Header shows all household members with initials and name; current user highlighted in emerald
+- Invite flow: authenticated users who open an invite link are auto-joined and redirected to dashboard — no extra button step
+
 ### Dashboard
 - Household name, cards to Chores / Bills / Rules
 - `InviteSection` — copyable invite link, QR code, regenerate button
@@ -58,6 +62,7 @@ Updated 2026-05-25.
 - List active and inactive rules
 - Add rule: title + optional description
 - Toggle active / deactivate / reactivate
+- Rule acknowledgements: each active rule shows per-member status (✓ acknowledged / ○ pending); current user sees "Acknowledge" button until they confirm; once confirmed, button is replaced by read-only acknowledged state
 
 ### Email Reminders (Resend)
 - `GET /api/cron/reminders` — bearer-token protected via `CRON_SECRET`
@@ -84,7 +89,6 @@ Updated 2026-05-25.
 |---------|-------|
 | Custom bill splits | `split_type: 'custom'` in schema; only equal implemented |
 | Weekly snapshot email | Not started |
-| Rule acknowledgements | Table exists; no service or UI |
 | Push notifications | Type exists; only email implemented |
 | Fairness score | Cut from MVP |
 | In-app chat | Cut from MVP |
