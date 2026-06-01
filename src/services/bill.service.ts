@@ -1,4 +1,5 @@
 import { createClient } from '@/lib/supabase/server'
+import { createAdminClient } from '@/lib/supabase/admin'
 import type { Bill, BillShare } from '@/types'
 
 export type ShareWithProfile = BillShare & {
@@ -34,7 +35,8 @@ export async function createBill(
   householdId: string,
   title: string,
   amountCents: number,
-  dueDate: string
+  dueDate: string,
+  recurring = false
 ): Promise<{ data: Bill | null; error?: string }> {
   const supabase = await createClient()
   const {
@@ -77,6 +79,7 @@ export async function createBill(
       split_type: 'equal',
       created_by_user_id: user.id,
       status: 'unpaid',
+      recurring,
     })
     .select()
     .single()
@@ -99,13 +102,14 @@ export async function updateBill(
   billId: string,
   title: string,
   amountCents: number,
-  dueDate: string
+  dueDate: string,
+  recurring = false
 ): Promise<{ error?: string }> {
   const supabase = await createClient()
 
   const { error: billError } = await supabase
     .from('bills')
-    .update({ title, amount_cents: amountCents, due_date: dueDate })
+    .update({ title, amount_cents: amountCents, due_date: dueDate, recurring })
     .eq('id', billId)
 
   if (billError) return { error: 'Failed to update bill.' }
@@ -127,13 +131,138 @@ export async function updateBill(
   return {}
 }
 
+export async function deleteBill(billId: string): Promise<{ error?: string }> {
+  const supabase = await createClient()
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+  if (!user) return { error: 'Not authenticated' }
+
+  const { data: bill } = await supabase
+    .from('bills')
+    .select('created_by_user_id, household_id')
+    .eq('id', billId)
+    .maybeSingle()
+
+  if (!bill) return { error: 'Bill not found' }
+
+  const { data: member } = await supabase
+    .from('household_members')
+    .select('role')
+    .eq('household_id', bill.household_id)
+    .eq('user_id', user.id)
+    .maybeSingle()
+
+  const isCreator = bill.created_by_user_id === user.id
+  const isOwner = member?.role === 'owner'
+
+  if (!isCreator && !isOwner) {
+    return { error: 'Only the bill creator or household owner can delete this bill.' }
+  }
+
+  const admin = createAdminClient()
+  await admin.from('bill_shares').delete().eq('bill_id', billId)
+
+  const { error } = await admin.from('bills').delete().eq('id', billId)
+  if (error) return { error: 'Failed to delete bill.' }
+  return {}
+}
+
 export async function markSharePaid(shareId: string): Promise<boolean> {
   const supabase = await createClient()
-  const { error } = await supabase
+
+  const { data: share, error } = await supabase
     .from('bill_shares')
     .update({ paid_status: true, paid_at: new Date().toISOString() })
     .eq('id', shareId)
-  return !error
+    .select('bill_id')
+    .single()
+
+  if (error || !share) return false
+
+  const { data: allShares } = await supabase
+    .from('bill_shares')
+    .select('paid_status')
+    .eq('bill_id', share.bill_id)
+
+  const allPaid = allShares?.every((s) => s.paid_status)
+  if (!allPaid) return true
+
+  const { data: bill } = await supabase
+    .from('bills')
+    .select('*')
+    .eq('id', share.bill_id)
+    .single()
+
+  if (!bill?.recurring) return true
+
+  const nextDue = new Date(bill.due_date)
+  nextDue.setMonth(nextDue.getMonth() + 1)
+
+  const { data: members } = await supabase
+    .from('household_members')
+    .select('user_id')
+    .eq('household_id', bill.household_id)
+
+  if (!members || members.length === 0) return true
+
+  const perPerson = Math.round(bill.amount_cents / members.length)
+
+  const { data: newBill } = await supabase
+    .from('bills')
+    .insert({
+      household_id: bill.household_id,
+      title: bill.title,
+      amount_cents: bill.amount_cents,
+      due_date: nextDue.toISOString().split('T')[0],
+      split_type: 'equal',
+      created_by_user_id: bill.created_by_user_id,
+      status: 'unpaid',
+      recurring: true,
+    })
+    .select()
+    .single()
+
+  if (newBill) {
+    await supabase.from('bill_shares').insert(
+      members.map((m) => ({
+        bill_id: newBill.id,
+        user_id: m.user_id,
+        amount_cents: perPerson,
+        paid_status: false,
+      }))
+    )
+  }
+
+  return true
+}
+
+export async function getUnpaidBillsForMember(
+  householdId: string,
+  userId: string
+): Promise<{ id: string; title: string; amount_cents: number; myShareCents: number }[]> {
+  const supabase = await createClient()
+  const { data: bills } = await supabase
+    .from('bills')
+    .select('id, title, amount_cents, bill_shares(amount_cents, paid_status, user_id)')
+    .eq('household_id', householdId)
+
+  if (!bills) return []
+
+  const result: { id: string; title: string; amount_cents: number; myShareCents: number }[] = []
+  for (const bill of bills) {
+    const myShare = (bill.bill_shares as { amount_cents: number; paid_status: boolean; user_id: string }[])
+      ?.find((s) => s.user_id === userId && !s.paid_status)
+    if (myShare) {
+      result.push({
+        id: bill.id,
+        title: bill.title,
+        amount_cents: bill.amount_cents,
+        myShareCents: myShare.amount_cents,
+      })
+    }
+  }
+  return result
 }
 
 export async function seedDefaultBills(householdId: string, userId: string): Promise<void> {

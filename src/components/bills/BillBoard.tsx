@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useTransition } from 'react'
-import { addBillAction, editBillAction, markSharePaidAction } from '@/app/(dashboard)/bills/actions'
+import { addBillAction, editBillAction, markSharePaidAction, deleteBillAction } from '@/app/(dashboard)/bills/actions'
 import type { BillWithShares } from '@/services/bill.service'
 
 interface Props {
@@ -19,6 +19,8 @@ export default function BillBoard({ householdId, currentUserId, bills }: Props) 
   const [formError, setFormError] = useState('')
   const [editingBillId, setEditingBillId] = useState<string | null>(null)
   const [editError, setEditError] = useState('')
+  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null)
+  const [deleteError, setDeleteError] = useState('')
   const [isPending, startTransition] = useTransition()
 
   function handleAdd(formData: FormData) {
@@ -35,6 +37,19 @@ export default function BillBoard({ householdId, currentUserId, bills }: Props) 
 
   function handlePaid(shareId: string) {
     startTransition(() => markSharePaidAction(shareId))
+  }
+
+  function handleDelete(billId: string) {
+    setDeleteError('')
+    startTransition(async () => {
+      const result = await deleteBillAction(billId)
+      if (result?.error) {
+        setDeleteError(result.error)
+        setConfirmDeleteId(billId)
+      } else {
+        setConfirmDeleteId(null)
+      }
+    })
   }
 
   function handleEdit(formData: FormData) {
@@ -107,6 +122,20 @@ export default function BillBoard({ householdId, currentUserId, bills }: Props) 
                 className="w-full px-3 py-2 rounded-lg border border-stone-200 text-stone-900 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent text-sm"
               />
             </div>
+            <label className="flex items-center gap-2 cursor-pointer">
+              <input
+                type="checkbox"
+                name="recurringCheck"
+                id="recurringCheck"
+                onChange={(e) => {
+                  const hidden = e.currentTarget.form?.elements.namedItem('recurring') as HTMLInputElement | null
+                  if (hidden) hidden.value = e.currentTarget.checked ? 'true' : 'false'
+                }}
+                className="w-4 h-4 rounded border-stone-300 text-emerald-500 focus:ring-emerald-500"
+              />
+              <input type="hidden" name="recurring" defaultValue="false" />
+              <span className="text-sm text-stone-700">Repeats monthly</span>
+            </label>
             <button
               type="submit"
               disabled={isPending}
@@ -172,6 +201,19 @@ export default function BillBoard({ householdId, currentUserId, bills }: Props) 
                           className="w-full px-3 py-2 rounded-lg border border-stone-200 text-stone-900 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent text-sm"
                         />
                       </div>
+                      <label className="flex items-center gap-2 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          defaultChecked={bill.recurring}
+                          onChange={(e) => {
+                            const hidden = e.currentTarget.form?.elements.namedItem('recurring') as HTMLInputElement | null
+                            if (hidden) hidden.value = e.currentTarget.checked ? 'true' : 'false'
+                          }}
+                          className="w-4 h-4 rounded border-stone-300 text-emerald-500 focus:ring-emerald-500"
+                        />
+                        <input type="hidden" name="recurring" defaultValue={bill.recurring ? 'true' : 'false'} />
+                        <span className="text-sm text-stone-700">Repeats monthly</span>
+                      </label>
                       <div className="flex gap-2">
                         <button
                           type="submit"
@@ -204,11 +246,22 @@ export default function BillBoard({ householdId, currentUserId, bills }: Props) 
                       </div>
                       <div className="flex items-center gap-2">
                         <button
-                          onClick={() => { setEditingBillId(bill.id); setEditError('') }}
+                          onClick={() => { setEditingBillId(bill.id); setEditError(''); setConfirmDeleteId(null) }}
                           className="text-xs px-2 py-1 text-stone-500 hover:text-stone-700 hover:bg-stone-100 rounded-lg transition-colors"
                         >
                           Edit
                         </button>
+                        <button
+                          onClick={() => { setConfirmDeleteId(bill.id); setDeleteError(''); setEditingBillId(null) }}
+                          className="text-xs px-2 py-1 text-red-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                        >
+                          Delete
+                        </button>
+                        {bill.recurring && (
+                          <span className="text-xs font-medium px-2 py-1 rounded-full bg-blue-50 text-blue-600">
+                            Monthly
+                          </span>
+                        )}
                         <span className={`text-xs font-medium px-2 py-1 rounded-full ${
                           allPaid ? 'bg-emerald-100 text-emerald-700' : 'bg-stone-100 text-stone-500'
                         }`}>
@@ -216,6 +269,28 @@ export default function BillBoard({ householdId, currentUserId, bills }: Props) 
                         </span>
                       </div>
                     </div>
+
+                    {confirmDeleteId === bill.id && (
+                      <div className="mb-4 p-3 rounded-xl bg-red-50 border border-red-200 space-y-2">
+                        <p className="text-sm text-red-700 font-medium">Delete this bill? This cannot be undone.</p>
+                        {deleteError && <p className="text-xs text-red-600">{deleteError}</p>}
+                        <div className="flex gap-2">
+                          <button
+                            onClick={() => handleDelete(bill.id)}
+                            disabled={isPending}
+                            className="px-3 py-1.5 bg-red-600 hover:bg-red-700 text-white text-xs font-medium rounded-lg transition-colors disabled:opacity-50"
+                          >
+                            {isPending ? 'Deleting...' : 'Yes, delete'}
+                          </button>
+                          <button
+                            onClick={() => { setConfirmDeleteId(null); setDeleteError('') }}
+                            className="px-3 py-1.5 bg-stone-100 hover:bg-stone-200 text-stone-700 text-xs font-medium rounded-lg transition-colors"
+                          >
+                            Cancel
+                          </button>
+                        </div>
+                      </div>
+                    )}
 
                     <div className="space-y-2">
                       {bill.shares?.map((share) => {

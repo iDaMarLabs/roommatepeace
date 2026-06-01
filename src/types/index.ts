@@ -67,6 +67,7 @@ export interface Bill {
   split_type: SplitType
   created_by_user_id: string
   status: BillStatus
+  recurring: boolean
   created_at: string
 }
 
@@ -95,4 +96,30 @@ export interface RuleAcknowledgement {
   user_id: string
   acknowledged_at: string
   profile?: { id: string; name: string | null; email: string } | null
+}
+
+export interface DepartureBillPayment {
+  id: string
+  departure_request_id: string
+  bill_id: string
+  amount_paid_cents: number
+  bill?: { id: string; title: string; amount_cents: number }
+}
+
+export interface DepartureAcknowledgement {
+  id: string
+  departure_request_id: string
+  member_user_id: string
+  created_at: string
+}
+
+export interface DepartureRequest {
+  id: string
+  household_id: string
+  requesting_user_id: string
+  status: 'pending' | 'completed' | 'cancelled'
+  created_at: string
+  profile?: { id: string; name: string | null; email: string }
+  bill_payments?: DepartureBillPayment[]
+  acknowledgements?: DepartureAcknowledgement[]
 }

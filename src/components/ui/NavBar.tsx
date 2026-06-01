@@ -2,7 +2,7 @@
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
-import { Home, CheckSquare, Receipt, BookOpen, LogOut } from 'lucide-react'
+import { Home, CheckSquare, Receipt, BookOpen, LogOut, Settings } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import type { HouseholdMember } from '@/types'
 
@@ -11,6 +11,7 @@ const links = [
   { href: '/chores', label: 'Chores', icon: CheckSquare },
   { href: '/bills', label: 'Bills', icon: Receipt },
   { href: '/rules', label: 'Rules', icon: BookOpen },
+  { href: '/settings', label: 'Settings', icon: Settings },
 ]
 
 interface NavBarProps {
@@ -30,7 +31,7 @@ export default function NavBar({ userEmail, currentUserId, members }: NavBarProp
   }
 
   return (
-    <nav className="bg-white border-b border-stone-200">
+    <nav className="bg-white border-b border-stone-200 sticky top-0 z-50">
       <div className="max-w-4xl mx-auto px-4">
         {/* Title row */}
         <div className="flex items-center justify-between h-12">
@@ -60,7 +61,7 @@ export default function NavBar({ userEmail, currentUserId, members }: NavBarProp
         </div>
 
         {/* Nav row */}
-        <div className="grid grid-cols-4 border-t border-stone-100">
+        <div className="grid grid-cols-5 border-t border-stone-100">
           {links.map(({ href, label, icon: Icon }) => (
             <Link
               key={href}
