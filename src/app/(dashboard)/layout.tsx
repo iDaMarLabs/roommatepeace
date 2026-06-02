@@ -1,6 +1,8 @@
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import NavBar from '@/components/ui/NavBar'
+import { getUserHousehold, getHouseholdMembers } from '@/services/household.service'
+import type { HouseholdMember } from '@/types'
 
 export default async function DashboardLayout({
   children,
@@ -14,9 +16,15 @@ export default async function DashboardLayout({
 
   if (!user) redirect('/login')
 
+  let members: HouseholdMember[] = []
+  const household = await getUserHousehold()
+  if (household) {
+    members = await getHouseholdMembers(household.id)
+  }
+
   return (
     <div className="min-h-screen bg-stone-50">
-      <NavBar userEmail={user.email ?? ''} />
+      <NavBar userEmail={user.email ?? ''} currentUserId={user.id} members={members} />
       <main className="max-w-4xl mx-auto px-4 py-8">{children}</main>
     </div>
   )

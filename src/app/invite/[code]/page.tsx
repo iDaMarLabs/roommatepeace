@@ -1,7 +1,7 @@
-import { getHouseholdByInviteCode } from '@/services/household.service'
+import { getHouseholdByInviteCode, joinHousehold } from '@/services/household.service'
 import { createClient } from '@/lib/supabase/server'
 import Link from 'next/link'
-import JoinButton from './JoinButton'
+import { redirect } from 'next/navigation'
 import QRCodeDisplay from '@/components/ui/QRCodeDisplay'
 
 export default async function InvitePage({
@@ -28,6 +28,11 @@ export default async function InvitePage({
     data: { user },
   } = await supabase.auth.getUser()
 
+  if (user) {
+    await joinHousehold(code)
+    redirect('/dashboard')
+  }
+
   return (
     <div className="min-h-screen flex items-center justify-center bg-stone-50 px-4">
       <div className="w-full max-w-md">
@@ -46,24 +51,20 @@ export default async function InvitePage({
             <QRCodeDisplay path={`/invite/${code}`} size={160} />
           </div>
 
-          {user ? (
-            <JoinButton inviteCode={code} />
-          ) : (
-            <div className="space-y-3">
-              <Link
-                href={`/signup?invite=${code}`}
-                className="block w-full py-2.5 px-4 bg-emerald-500 hover:bg-emerald-600 text-white font-medium rounded-lg transition-colors text-sm text-center"
-              >
-                Create account to join
-              </Link>
-              <Link
-                href={`/login?invite=${code}`}
-                className="block w-full py-2.5 px-4 bg-white hover:bg-stone-50 border border-stone-200 text-stone-700 font-medium rounded-lg transition-colors text-sm text-center"
-              >
-                Log in to join
-              </Link>
-            </div>
-          )}
+          <div className="space-y-3">
+            <Link
+              href={`/signup?invite=${code}`}
+              className="block w-full py-2.5 px-4 bg-emerald-500 hover:bg-emerald-600 text-white font-medium rounded-lg transition-colors text-sm text-center"
+            >
+              Create account to join
+            </Link>
+            <Link
+              href={`/login?invite=${code}`}
+              className="block w-full py-2.5 px-4 bg-white hover:bg-stone-50 border border-stone-200 text-stone-700 font-medium rounded-lg transition-colors text-sm text-center"
+            >
+              Log in to join
+            </Link>
+          </div>
         </div>
       </div>
     </div>

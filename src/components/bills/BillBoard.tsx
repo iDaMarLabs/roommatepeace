@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useTransition } from 'react'
-import { addBillAction, markSharePaidAction } from '@/app/(dashboard)/bills/actions'
+import { addBillAction, editBillAction, markSharePaidAction, deleteBillAction } from '@/app/(dashboard)/bills/actions'
 import type { BillWithShares } from '@/services/bill.service'
 
 interface Props {
@@ -17,6 +17,10 @@ function formatCents(cents: number) {
 export default function BillBoard({ householdId, currentUserId, bills }: Props) {
   const [showForm, setShowForm] = useState(false)
   const [formError, setFormError] = useState('')
+  const [editingBillId, setEditingBillId] = useState<string | null>(null)
+  const [editError, setEditError] = useState('')
+  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null)
+  const [deleteError, setDeleteError] = useState('')
   const [isPending, startTransition] = useTransition()
 
   function handleAdd(formData: FormData) {
@@ -33,6 +37,31 @@ export default function BillBoard({ householdId, currentUserId, bills }: Props) 
 
   function handlePaid(shareId: string) {
     startTransition(() => markSharePaidAction(shareId))
+  }
+
+  function handleDelete(billId: string) {
+    setDeleteError('')
+    startTransition(async () => {
+      const result = await deleteBillAction(billId)
+      if (result?.error) {
+        setDeleteError(result.error)
+        setConfirmDeleteId(billId)
+      } else {
+        setConfirmDeleteId(null)
+      }
+    })
+  }
+
+  function handleEdit(formData: FormData) {
+    setEditError('')
+    startTransition(async () => {
+      const result = await editBillAction(formData)
+      if (result?.error) {
+        setEditError(result.error)
+      } else {
+        setEditingBillId(null)
+      }
+    })
   }
 
   return (
@@ -93,6 +122,20 @@ export default function BillBoard({ householdId, currentUserId, bills }: Props) 
                 className="w-full px-3 py-2 rounded-lg border border-stone-200 text-stone-900 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent text-sm"
               />
             </div>
+            <label className="flex items-center gap-2 cursor-pointer">
+              <input
+                type="checkbox"
+                name="recurringCheck"
+                id="recurringCheck"
+                onChange={(e) => {
+                  const hidden = e.currentTarget.form?.elements.namedItem('recurring') as HTMLInputElement | null
+                  if (hidden) hidden.value = e.currentTarget.checked ? 'true' : 'false'
+                }}
+                className="w-4 h-4 rounded border-stone-300 text-emerald-500 focus:ring-emerald-500"
+              />
+              <input type="hidden" name="recurring" defaultValue="false" />
+              <span className="text-sm text-stone-700">Repeats monthly</span>
+            </label>
             <button
               type="submit"
               disabled={isPending}
@@ -116,52 +159,170 @@ export default function BillBoard({ householdId, currentUserId, bills }: Props) 
 
             return (
               <div key={bill.id} className="bg-white border border-stone-200 rounded-2xl p-6">
-                <div className="flex items-start justify-between mb-4">
-                  <div>
-                    <p className="font-semibold text-stone-900">{bill.title}</p>
-                    <p className="text-stone-500 text-sm mt-0.5">
-                      {formatCents(bill.amount_cents)} total · Due {bill.due_date}
-                      {bill.amount_cents === 0 && (
-                        <span className="ml-2 text-amber-500 font-medium">· Needs amount</span>
-                      )}
-                    </p>
-                  </div>
-                  <span className={`text-xs font-medium px-2 py-1 rounded-full ${
-                    allPaid ? 'bg-emerald-100 text-emerald-700' : 'bg-stone-100 text-stone-500'
-                  }`}>
-                    {allPaid ? 'All paid' : 'Unpaid'}
-                  </span>
-                </div>
-
-                <div className="space-y-2">
-                  {bill.shares?.map((share) => {
-                    const isMe = share.user_id === currentUserId
-                    const name = share.profile?.name ?? share.profile?.email ?? 'Roommate'
-
-                    return (
-                      <div key={share.id} className="flex items-center justify-between">
-                        <div className="flex items-center gap-2">
-                          <span className={`w-2 h-2 rounded-full ${share.paid_status ? 'bg-emerald-400' : 'bg-stone-300'}`} />
-                          <span className="text-sm text-stone-700">
-                            {isMe ? 'You' : name} — {formatCents(share.amount_cents)}
-                          </span>
-                        </div>
-                        {isMe && !share.paid_status && (
-                          <button
-                            onClick={() => handlePaid(share.id)}
-                            disabled={isPending}
-                            className="text-xs px-3 py-1 bg-emerald-500 hover:bg-emerald-600 text-white rounded-lg transition-colors disabled:opacity-50"
-                          >
-                            Mark Paid
-                          </button>
-                        )}
-                        {share.paid_status && (
-                          <span className="text-xs text-emerald-600">Paid</span>
-                        )}
+                {editingBillId === bill.id ? (
+                  <form action={handleEdit}>
+                    <input type="hidden" name="billId" value={bill.id} />
+                    <h3 className="font-semibold text-stone-900 mb-3">Edit bill</h3>
+                    {editError && (
+                      <div className="mb-3 p-3 rounded-lg bg-red-50 border border-red-200 text-red-700 text-sm">
+                        {editError}
                       </div>
-                    )
-                  })}
-                </div>
+                    )}
+                    <div className="space-y-3">
+                      <div>
+                        <label className="block text-sm font-medium text-stone-700 mb-1">Bill name</label>
+                        <input
+                          name="title"
+                          type="text"
+                          required
+                          defaultValue={bill.title}
+                          className="w-full px-3 py-2 rounded-lg border border-stone-200 text-stone-900 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent text-sm"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-stone-700 mb-1">Total amount ($)</label>
+                        <input
+                          name="amount"
+                          type="number"
+                          required
+                          min="0"
+                          step="0.01"
+                          defaultValue={(bill.amount_cents / 100).toFixed(2)}
+                          className="w-full px-3 py-2 rounded-lg border border-stone-200 text-stone-900 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent text-sm"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-stone-700 mb-1">Due date</label>
+                        <input
+                          name="dueDate"
+                          type="date"
+                          required
+                          defaultValue={bill.due_date}
+                          className="w-full px-3 py-2 rounded-lg border border-stone-200 text-stone-900 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent text-sm"
+                        />
+                      </div>
+                      <label className="flex items-center gap-2 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          defaultChecked={bill.recurring}
+                          onChange={(e) => {
+                            const hidden = e.currentTarget.form?.elements.namedItem('recurring') as HTMLInputElement | null
+                            if (hidden) hidden.value = e.currentTarget.checked ? 'true' : 'false'
+                          }}
+                          className="w-4 h-4 rounded border-stone-300 text-emerald-500 focus:ring-emerald-500"
+                        />
+                        <input type="hidden" name="recurring" defaultValue={bill.recurring ? 'true' : 'false'} />
+                        <span className="text-sm text-stone-700">Repeats monthly</span>
+                      </label>
+                      <div className="flex gap-2">
+                        <button
+                          type="submit"
+                          disabled={isPending}
+                          className="flex-1 py-2 px-4 bg-emerald-500 hover:bg-emerald-600 disabled:bg-stone-200 disabled:text-stone-400 text-white font-medium rounded-lg transition-colors text-sm"
+                        >
+                          {isPending ? 'Saving...' : 'Save'}
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => { setEditingBillId(null); setEditError('') }}
+                          className="flex-1 py-2 px-4 bg-stone-100 hover:bg-stone-200 text-stone-700 font-medium rounded-lg transition-colors text-sm"
+                        >
+                          Cancel
+                        </button>
+                      </div>
+                    </div>
+                  </form>
+                ) : (
+                  <>
+                    <div className="flex items-start justify-between mb-4">
+                      <div>
+                        <p className="font-semibold text-stone-900">{bill.title}</p>
+                        <p className="text-stone-500 text-sm mt-0.5">
+                          {formatCents(bill.amount_cents)} total · Due {bill.due_date}
+                          {bill.amount_cents === 0 && (
+                            <span className="ml-2 text-amber-500 font-medium">· Needs amount</span>
+                          )}
+                        </p>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <button
+                          onClick={() => { setEditingBillId(bill.id); setEditError(''); setConfirmDeleteId(null) }}
+                          className="text-xs px-2 py-1 text-stone-500 hover:text-stone-700 hover:bg-stone-100 rounded-lg transition-colors"
+                        >
+                          Edit
+                        </button>
+                        <button
+                          onClick={() => { setConfirmDeleteId(bill.id); setDeleteError(''); setEditingBillId(null) }}
+                          className="text-xs px-2 py-1 text-red-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                        >
+                          Delete
+                        </button>
+                        {bill.recurring && (
+                          <span className="text-xs font-medium px-2 py-1 rounded-full bg-blue-50 text-blue-600">
+                            Monthly
+                          </span>
+                        )}
+                        <span className={`text-xs font-medium px-2 py-1 rounded-full ${
+                          allPaid ? 'bg-emerald-100 text-emerald-700' : 'bg-stone-100 text-stone-500'
+                        }`}>
+                          {allPaid ? 'All paid' : 'Unpaid'}
+                        </span>
+                      </div>
+                    </div>
+
+                    {confirmDeleteId === bill.id && (
+                      <div className="mb-4 p-3 rounded-xl bg-red-50 border border-red-200 space-y-2">
+                        <p className="text-sm text-red-700 font-medium">Delete this bill? This cannot be undone.</p>
+                        {deleteError && <p className="text-xs text-red-600">{deleteError}</p>}
+                        <div className="flex gap-2">
+                          <button
+                            onClick={() => handleDelete(bill.id)}
+                            disabled={isPending}
+                            className="px-3 py-1.5 bg-red-600 hover:bg-red-700 text-white text-xs font-medium rounded-lg transition-colors disabled:opacity-50"
+                          >
+                            {isPending ? 'Deleting...' : 'Yes, delete'}
+                          </button>
+                          <button
+                            onClick={() => { setConfirmDeleteId(null); setDeleteError('') }}
+                            className="px-3 py-1.5 bg-stone-100 hover:bg-stone-200 text-stone-700 text-xs font-medium rounded-lg transition-colors"
+                          >
+                            Cancel
+                          </button>
+                        </div>
+                      </div>
+                    )}
+
+                    <div className="space-y-2">
+                      {bill.shares?.map((share) => {
+                        const isMe = share.user_id === currentUserId
+                        const name = share.profile?.name ?? share.profile?.email ?? 'Roommate'
+
+                        return (
+                          <div key={share.id} className="flex items-center justify-between">
+                            <div className="flex items-center gap-2">
+                              <span className={`w-2 h-2 rounded-full ${share.paid_status ? 'bg-emerald-400' : 'bg-stone-300'}`} />
+                              <span className="text-sm text-stone-700">
+                                {isMe ? 'You' : name} — {formatCents(share.amount_cents)}
+                              </span>
+                            </div>
+                            {isMe && !share.paid_status && (
+                              <button
+                                onClick={() => handlePaid(share.id)}
+                                disabled={isPending}
+                                className="text-xs px-3 py-1 bg-emerald-500 hover:bg-emerald-600 text-white rounded-lg transition-colors disabled:opacity-50"
+                              >
+                                Mark Paid
+                              </button>
+                            )}
+                            {share.paid_status && (
+                              <span className="text-xs text-emerald-600">Paid</span>
+                            )}
+                          </div>
+                        )
+                      })}
+                    </div>
+                  </>
+                )}
               </div>
             )
           })}

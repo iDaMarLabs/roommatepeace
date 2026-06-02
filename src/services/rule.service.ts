@@ -1,5 +1,5 @@
 import { createClient } from '@/lib/supabase/server'
-import type { HouseRule } from '@/types'
+import type { HouseRule, RuleAcknowledgement } from '@/types'
 
 const DEFAULT_RULES: { title: string; description: string }[] = [
   {
@@ -71,6 +71,28 @@ export async function toggleRule(ruleId: string, active: boolean): Promise<boole
     .from('house_rules')
     .update({ active })
     .eq('id', ruleId)
+  return !error
+}
+
+export async function getAcknowledgements(ruleIds: string[]): Promise<RuleAcknowledgement[]> {
+  if (ruleIds.length === 0) return []
+  const supabase = await createClient()
+  const { data } = await supabase
+    .from('rule_acknowledgements')
+    .select('*, profile:profiles(id, name, email)')
+    .in('rule_id', ruleIds)
+  return (data as RuleAcknowledgement[]) ?? []
+}
+
+export async function acknowledgeRule(ruleId: string): Promise<boolean> {
+  const supabase = await createClient()
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+  if (!user) return false
+  const { error } = await supabase
+    .from('rule_acknowledgements')
+    .insert({ rule_id: ruleId, user_id: user.id, acknowledged_at: new Date().toISOString() })
   return !error
 }
 

@@ -1,6 +1,6 @@
 # Roommate Peace — What Is and Is Not Built
 
-Updated 2026-05-24.
+Updated 2026-05-25.
 
 ## Built and Working
 
@@ -22,6 +22,10 @@ Updated 2026-05-24.
 ### Household Creation
 - `/setup` → `POST /api/households` → creates household + inserts owner member
 - Seeds 12 default chores, 6 default bills ($0 placeholder), 8 default house rules
+
+### Navigation
+- Header shows all household members with initials and name; current user highlighted in emerald
+- Invite flow: authenticated users who open an invite link are auto-joined and redirected to dashboard — no extra button step
 
 ### Dashboard
 - Household name, cards to Chores / Bills / Rules
@@ -50,6 +54,7 @@ Updated 2026-05-24.
 - List all bills by due date with per-person share breakdown
 - Add bill: title, amount, due date — equal split across current members
 - Mark your share paid
+- Edit existing bill: title, amount, due date — recalculates equal shares for all members
 - Bills with `$0` show "Needs amount" indicator
 - Free plan: max 3 bills enforced at create
 
@@ -57,6 +62,7 @@ Updated 2026-05-24.
 - List active and inactive rules
 - Add rule: title + optional description
 - Toggle active / deactivate / reactivate
+- Rule acknowledgements: each active rule shows per-member status (✓ acknowledged / ○ pending); current user sees "Acknowledge" button until they confirm; once confirmed, button is replaced by read-only acknowledged state
 
 ### Email Reminders (Resend)
 - `GET /api/cron/reminders` — bearer-token protected via `CRON_SECRET`
@@ -83,7 +89,6 @@ Updated 2026-05-24.
 |---------|-------|
 | Custom bill splits | `split_type: 'custom'` in schema; only equal implemented |
 | Weekly snapshot email | Not started |
-| Rule acknowledgements | Table exists; no service or UI |
 | Push notifications | Type exists; only email implemented |
 | Fairness score | Cut from MVP |
 | In-app chat | Cut from MVP |
