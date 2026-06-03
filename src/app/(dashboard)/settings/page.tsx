@@ -3,6 +3,7 @@ import { getUnpaidBillsForMember } from '@/services/bill.service'
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import LeaveHouseholdSection from '@/components/household/LeaveHouseholdSection'
+import RenameHouseholdSection from '@/components/household/RenameHouseholdSection'
 
 export default async function SettingsPage() {
   const household = await getUserHousehold()
@@ -30,6 +31,19 @@ export default async function SettingsPage() {
       </div>
 
       <div className="space-y-6">
+        {isOwner && (
+          <div className="bg-white border border-stone-200 rounded-2xl p-6 shadow-sm">
+            <h2 className="text-base font-semibold text-stone-900 mb-1">Household Name</h2>
+            <p className="text-sm text-stone-600 mb-4">
+              Change the name shown across your household.
+            </p>
+            <RenameHouseholdSection
+              householdId={household.id}
+              currentName={household.name}
+            />
+          </div>
+        )}
+
         <div className="bg-white border border-stone-200 rounded-2xl p-6">
           <h2 className="text-base font-semibold text-stone-900 mb-1">Leave Household</h2>
           <p className="text-sm text-stone-500 mb-4">

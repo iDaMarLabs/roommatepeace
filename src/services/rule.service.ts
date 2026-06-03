@@ -1,4 +1,5 @@
 import { createClient } from '@/lib/supabase/server'
+import { createAdminClient } from '@/lib/supabase/admin'
 import type { HouseRule, RuleAcknowledgement } from '@/types'
 
 const DEFAULT_RULES: { title: string; description: string }[] = [
@@ -94,6 +95,40 @@ export async function acknowledgeRule(ruleId: string): Promise<boolean> {
     .from('rule_acknowledgements')
     .insert({ rule_id: ruleId, user_id: user.id, acknowledged_at: new Date().toISOString() })
   return !error
+}
+
+export async function deleteRule(ruleId: string): Promise<{ error?: string }> {
+  const supabase = await createClient()
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+  if (!user) return { error: 'Not authenticated' }
+
+  const { data: rule } = await supabase
+    .from('house_rules')
+    .select('household_id')
+    .eq('id', ruleId)
+    .maybeSingle()
+
+  if (!rule) return { error: 'Rule not found' }
+
+  const { data: member } = await supabase
+    .from('household_members')
+    .select('role')
+    .eq('household_id', rule.household_id)
+    .eq('user_id', user.id)
+    .maybeSingle()
+
+  if (member?.role !== 'owner') {
+    return { error: 'Only the household owner can delete rules.' }
+  }
+
+  const admin = createAdminClient()
+  await admin.from('rule_acknowledgements').delete().eq('rule_id', ruleId)
+
+  const { error } = await admin.from('house_rules').delete().eq('id', ruleId)
+  if (error) return { error: 'Failed to delete rule.' }
+  return {}
 }
 
 export async function seedDefaultRules(householdId: string): Promise<void> {

@@ -4,6 +4,7 @@ import { useTransition } from 'react'
 import { LogOut, CheckCircle, Clock } from 'lucide-react'
 import { acknowledgeLeaveAction } from '@/app/(dashboard)/dashboard/actions'
 import type { DepartureRequest } from '@/types'
+import { Button } from '@/components/ui/Button'
 
 function formatCents(cents: number) {
   return `$${(cents / 100).toFixed(2)}`
@@ -36,14 +37,14 @@ export default function DepartureRequestBanner({ departureRequest, currentUserId
   }
 
   return (
-    <div className="bg-amber-50 border border-amber-200 rounded-2xl p-5 space-y-4">
+    <div className="bg-amber-50 border border-amber-200 rounded-2xl p-5 mb-6 space-y-4">
       <div className="flex items-start gap-3">
         <LogOut size={18} className="text-amber-600 mt-0.5 shrink-0" />
         <div>
           <p className="text-sm font-semibold text-stone-900">
             {name} has requested to leave the household.
           </p>
-          <p className="text-xs text-stone-500 mt-0.5">
+          <p className="text-xs text-stone-600 mt-0.5">
             {ackedCount} of {remaining} member{remaining !== 1 ? 's' : ''} acknowledged —
             departure completes when all remaining members acknowledge.
           </p>
@@ -58,7 +59,7 @@ export default function DepartureRequestBanner({ departureRequest, currentUserId
           {departureRequest.bill_payments!.map((bp) => (
             <div
               key={bp.id}
-              className="flex justify-between items-center bg-white border border-stone-200 rounded-lg px-3 py-2 text-sm"
+              className="flex justify-between items-center bg-white border border-stone-200 rounded-xl px-3 py-2.5 text-sm"
             >
               <span className="text-stone-900">{bp.bill?.title ?? 'Bill'}</span>
               <span className="text-stone-500 text-xs">
@@ -69,22 +70,22 @@ export default function DepartureRequestBanner({ departureRequest, currentUserId
               </span>
             </div>
           ))}
-          {hasBills && (
-            <p className="text-xs text-stone-500">
-              After all members acknowledge, the remaining balances will be recalculated and split equally.
-            </p>
-          )}
+          <p className="text-xs text-stone-500">
+            After all members acknowledge, the remaining balances will be recalculated and split equally.
+          </p>
         </div>
       )}
 
-      <div className="space-y-1">
-        {acks.map((a) => (
-          <div key={a.id} className="flex items-center gap-1.5 text-xs text-emerald-700">
-            <CheckCircle size={12} />
-            <span>Member acknowledged</span>
-          </div>
-        ))}
-      </div>
+      {acks.length > 0 && (
+        <div className="space-y-1">
+          {acks.map((a) => (
+            <div key={a.id} className="flex items-center gap-1.5 text-xs text-emerald-700">
+              <CheckCircle size={12} />
+              <span>Member acknowledged</span>
+            </div>
+          ))}
+        </div>
+      )}
 
       {alreadyAcknowledged ? (
         <div className="flex items-center gap-2 text-sm text-emerald-700">
@@ -92,18 +93,17 @@ export default function DepartureRequestBanner({ departureRequest, currentUserId
           <span>You have acknowledged this departure.</span>
         </div>
       ) : (
-        <button
+        <Button
+          variant="primary"
           onClick={handleAcknowledge}
           disabled={isPending}
-          className="flex items-center gap-2 px-4 py-2 bg-amber-600 text-white text-sm font-medium rounded-lg hover:bg-amber-700 disabled:opacity-50 transition-colors"
+          className="bg-amber-600 hover:bg-amber-700"
         >
-          {isPending ? (
-            <Clock size={14} />
-          ) : (
-            <CheckCircle size={14} />
-          )}
-          {isPending ? 'Saving...' : 'I acknowledge this departure'}
-        </button>
+          <span className="flex items-center gap-2">
+            {isPending ? <Clock size={14} /> : <CheckCircle size={14} />}
+            {isPending ? 'Saving...' : 'I acknowledge this departure'}
+          </span>
+        </Button>
       )}
     </div>
   )

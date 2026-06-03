@@ -1,7 +1,7 @@
 'use server'
 
 import { revalidatePath } from 'next/cache'
-import { createChore, pickUpChore, completeChore } from '@/services/chore.service'
+import { createChore, pickUpChore, completeChore, deleteChore } from '@/services/chore.service'
 import type { RecurrenceType } from '@/types'
 
 export async function addChoreAction(
@@ -30,4 +30,11 @@ export async function pickUpChoreAction(choreId: string) {
 export async function completeChoreAction(assignmentId: string) {
   await completeChore(assignmentId)
   revalidatePath('/chores')
+}
+
+export async function deleteChoreAction(choreId: string): Promise<{ error?: string }> {
+  const result = await deleteChore(choreId)
+  if (result.error) return { error: result.error }
+  revalidatePath('/chores')
+  return {}
 }

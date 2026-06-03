@@ -39,8 +39,8 @@ export async function editBillAction(formData: FormData): Promise<{ error?: stri
   return {}
 }
 
-export async function markSharePaidAction(shareId: string) {
-  await markSharePaid(shareId)
+export async function markSharePaidAction(shareId: string, paymentNote: string) {
+  await markSharePaid(shareId, paymentNote)
   revalidatePath('/bills')
 }
 

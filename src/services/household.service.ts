@@ -326,6 +326,36 @@ async function deleteHousehold(householdId: string): Promise<void> {
   await admin.from('households').delete().eq('id', householdId)
 }
 
+export async function renameHousehold(
+  householdId: string,
+  name: string
+): Promise<{ error?: string }> {
+  const supabase = await createClient()
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+  if (!user) return { error: 'Not authenticated' }
+
+  const { data: member } = await supabase
+    .from('household_members')
+    .select('role')
+    .eq('household_id', householdId)
+    .eq('user_id', user.id)
+    .maybeSingle()
+
+  if (member?.role !== 'owner') {
+    return { error: 'Only the household owner can rename the household.' }
+  }
+
+  const { error } = await supabase
+    .from('households')
+    .update({ name })
+    .eq('id', householdId)
+
+  if (error) return { error: 'Failed to rename household.' }
+  return {}
+}
+
 export async function regenerateInviteCode(householdId: string): Promise<string | null> {
   const supabase = await createClient()
   const { data } = await supabase

@@ -1,8 +1,11 @@
 'use client'
 
 import { useState, useTransition } from 'react'
+import { Pencil, Trash2, Receipt, RefreshCw } from 'lucide-react'
 import { addBillAction, editBillAction, markSharePaidAction, deleteBillAction } from '@/app/(dashboard)/bills/actions'
 import type { BillWithShares } from '@/services/bill.service'
+import { Button } from '@/components/ui/Button'
+import { Input } from '@/components/ui/Input'
 
 interface Props {
   householdId: string
@@ -14,6 +17,13 @@ function formatCents(cents: number) {
   return (cents / 100).toLocaleString('en-US', { style: 'currency', currency: 'USD' })
 }
 
+function formatDate(dateStr: string) {
+  const [year, month, day] = dateStr.split('-').map(Number)
+  return new Date(year, month - 1, day).toLocaleDateString('en-US', {
+    month: 'short', day: 'numeric', year: 'numeric',
+  })
+}
+
 export default function BillBoard({ householdId, currentUserId, bills }: Props) {
   const [showForm, setShowForm] = useState(false)
   const [formError, setFormError] = useState('')
@@ -21,6 +31,8 @@ export default function BillBoard({ householdId, currentUserId, bills }: Props) 
   const [editError, setEditError] = useState('')
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null)
   const [deleteError, setDeleteError] = useState('')
+  const [payingShareId, setPayingShareId] = useState<string | null>(null)
+  const [paymentNote, setPaymentNote] = useState('')
   const [isPending, startTransition] = useTransition()
 
   function handleAdd(formData: FormData) {
@@ -35,8 +47,12 @@ export default function BillBoard({ householdId, currentUserId, bills }: Props) 
     })
   }
 
-  function handlePaid(shareId: string) {
-    startTransition(() => markSharePaidAction(shareId))
+  function handlePaid(shareId: string, note: string) {
+    startTransition(async () => {
+      await markSharePaidAction(shareId, note)
+      setPayingShareId(null)
+      setPaymentNote('')
+    })
   }
 
   function handleDelete(billId: string) {
@@ -67,16 +83,16 @@ export default function BillBoard({ householdId, currentUserId, bills }: Props) 
   return (
     <div>
       <div className="flex items-center justify-between mb-6">
-        <button
+        <Button
+          variant="primary"
           onClick={() => setShowForm((v) => !v)}
-          className="px-4 py-2 bg-emerald-500 hover:bg-emerald-600 text-white text-sm font-medium rounded-lg transition-colors"
         >
           {showForm ? 'Cancel' : '+ Add Bill'}
-        </button>
+        </Button>
       </div>
 
       {showForm && (
-        <form action={handleAdd} className="bg-white border border-stone-200 rounded-2xl p-6 mb-6">
+        <form action={handleAdd} className="bg-white border border-stone-200 rounded-2xl p-6 mb-6 shadow-sm">
           <h2 className="font-semibold text-stone-900 mb-4">New bill</h2>
           {formError && (
             <div className="mb-4 p-3 rounded-lg bg-red-50 border border-red-200 text-red-700 text-sm">
@@ -84,45 +100,38 @@ export default function BillBoard({ householdId, currentUserId, bills }: Props) 
             </div>
           )}
           <input type="hidden" name="householdId" value={householdId} />
-          <div className="space-y-3">
+          <div className="space-y-4">
             <div>
-              <label className="block text-sm font-medium text-stone-700 mb-1">Bill name</label>
-              <input
+              <Input
+                label="Bill name"
                 name="title"
                 type="text"
                 required
                 placeholder="e.g. Electricity"
                 list="bill-suggestions"
-                className="w-full px-3 py-2 rounded-lg border border-stone-200 text-stone-900 placeholder-stone-400 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent text-sm"
               />
               <datalist id="bill-suggestions">
-                {['Rent','Electricity','Gas','Water / Sewer','Internet / WiFi','Renters Insurance','Groceries','Cleaning Supplies'].map((s) => (
+                {['Rent', 'Electricity', 'Gas', 'Water / Sewer', 'Internet / WiFi', 'Renters Insurance', 'Groceries', 'Cleaning Supplies'].map((s) => (
                   <option key={s} value={s} />
                 ))}
               </datalist>
             </div>
-            <div>
-              <label className="block text-sm font-medium text-stone-700 mb-1">Total amount ($)</label>
-              <input
-                name="amount"
-                type="number"
-                required
-                min="0"
-                step="0.01"
-                placeholder="0.00"
-                className="w-full px-3 py-2 rounded-lg border border-stone-200 text-stone-900 placeholder-stone-400 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent text-sm"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-stone-700 mb-1">Due date</label>
-              <input
-                name="dueDate"
-                type="date"
-                required
-                className="w-full px-3 py-2 rounded-lg border border-stone-200 text-stone-900 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent text-sm"
-              />
-            </div>
-            <label className="flex items-center gap-2 cursor-pointer">
+            <Input
+              label="Total amount ($)"
+              name="amount"
+              type="number"
+              required
+              min="0"
+              step="0.01"
+              placeholder="0.00"
+            />
+            <Input
+              label="Due date"
+              name="dueDate"
+              type="date"
+              required
+            />
+            <label className="flex items-center gap-2.5 cursor-pointer">
               <input
                 type="checkbox"
                 name="recurringCheck"
@@ -136,72 +145,63 @@ export default function BillBoard({ householdId, currentUserId, bills }: Props) 
               <input type="hidden" name="recurring" defaultValue="false" />
               <span className="text-sm text-stone-700">Repeats monthly</span>
             </label>
-            <button
-              type="submit"
-              disabled={isPending}
-              className="w-full py-2 px-4 bg-emerald-500 hover:bg-emerald-600 disabled:bg-stone-200 disabled:text-stone-400 text-white font-medium rounded-lg transition-colors text-sm"
-            >
+            <Button type="submit" fullWidth disabled={isPending}>
               {isPending ? 'Adding...' : 'Add bill'}
-            </button>
+            </Button>
           </div>
         </form>
       )}
 
       {bills.length === 0 ? (
-        <div className="text-center py-16 text-stone-400 text-sm">
-          No bills yet. Add one above.
+        <div className="flex flex-col items-center justify-center py-20 gap-3">
+          <div className="w-12 h-12 rounded-2xl bg-stone-100 flex items-center justify-center">
+            <Receipt size={22} className="text-stone-400" />
+          </div>
+          <p className="text-stone-500 text-sm">No bills yet. Add one above.</p>
         </div>
       ) : (
         <div className="space-y-4">
           {bills.map((bill) => {
             const myShare = bill.shares?.find((s) => s.user_id === currentUserId)
             const allPaid = bill.shares?.every((s) => s.paid_status)
+            const needsAmount = bill.amount_cents === 0
 
             return (
-              <div key={bill.id} className="bg-white border border-stone-200 rounded-2xl p-6">
+              <div key={bill.id} className="bg-white border border-stone-200 rounded-2xl p-6 shadow-sm">
                 {editingBillId === bill.id ? (
                   <form action={handleEdit}>
                     <input type="hidden" name="billId" value={bill.id} />
-                    <h3 className="font-semibold text-stone-900 mb-3">Edit bill</h3>
+                    <h3 className="font-semibold text-stone-900 mb-4">Edit bill</h3>
                     {editError && (
                       <div className="mb-3 p-3 rounded-lg bg-red-50 border border-red-200 text-red-700 text-sm">
                         {editError}
                       </div>
                     )}
-                    <div className="space-y-3">
-                      <div>
-                        <label className="block text-sm font-medium text-stone-700 mb-1">Bill name</label>
-                        <input
-                          name="title"
-                          type="text"
-                          required
-                          defaultValue={bill.title}
-                          className="w-full px-3 py-2 rounded-lg border border-stone-200 text-stone-900 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent text-sm"
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-sm font-medium text-stone-700 mb-1">Total amount ($)</label>
-                        <input
-                          name="amount"
-                          type="number"
-                          required
-                          min="0"
-                          step="0.01"
-                          defaultValue={(bill.amount_cents / 100).toFixed(2)}
-                          className="w-full px-3 py-2 rounded-lg border border-stone-200 text-stone-900 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent text-sm"
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-sm font-medium text-stone-700 mb-1">Due date</label>
-                        <input
-                          name="dueDate"
-                          type="date"
-                          required
-                          defaultValue={bill.due_date}
-                          className="w-full px-3 py-2 rounded-lg border border-stone-200 text-stone-900 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent text-sm"
-                        />
-                      </div>
-                      <label className="flex items-center gap-2 cursor-pointer">
+                    <div className="space-y-4">
+                      <Input
+                        label="Bill name"
+                        name="title"
+                        type="text"
+                        required
+                        defaultValue={bill.title}
+                      />
+                      <Input
+                        label="Total amount ($)"
+                        name="amount"
+                        type="number"
+                        required
+                        min="0"
+                        step="0.01"
+                        defaultValue={(bill.amount_cents / 100).toFixed(2)}
+                      />
+                      <Input
+                        label="Due date"
+                        name="dueDate"
+                        type="date"
+                        required
+                        defaultValue={bill.due_date}
+                      />
+                      <label className="flex items-center gap-2.5 cursor-pointer">
                         <input
                           type="checkbox"
                           defaultChecked={bill.recurring}
@@ -214,65 +214,82 @@ export default function BillBoard({ householdId, currentUserId, bills }: Props) 
                         <input type="hidden" name="recurring" defaultValue={bill.recurring ? 'true' : 'false'} />
                         <span className="text-sm text-stone-700">Repeats monthly</span>
                       </label>
-                      <div className="flex gap-2">
-                        <button
-                          type="submit"
-                          disabled={isPending}
-                          className="flex-1 py-2 px-4 bg-emerald-500 hover:bg-emerald-600 disabled:bg-stone-200 disabled:text-stone-400 text-white font-medium rounded-lg transition-colors text-sm"
-                        >
-                          {isPending ? 'Saving...' : 'Save'}
-                        </button>
-                        <button
+                      <div className="flex gap-2 pt-1">
+                        <Button type="submit" fullWidth disabled={isPending}>
+                          {isPending ? 'Saving...' : 'Save changes'}
+                        </Button>
+                        <Button
                           type="button"
+                          variant="ghost"
+                          fullWidth
                           onClick={() => { setEditingBillId(null); setEditError('') }}
-                          className="flex-1 py-2 px-4 bg-stone-100 hover:bg-stone-200 text-stone-700 font-medium rounded-lg transition-colors text-sm"
                         >
                           Cancel
-                        </button>
+                        </Button>
                       </div>
                     </div>
                   </form>
                 ) : (
                   <>
-                    <div className="flex items-start justify-between mb-4">
-                      <div>
-                        <p className="font-semibold text-stone-900">{bill.title}</p>
-                        <p className="text-stone-500 text-sm mt-0.5">
-                          {formatCents(bill.amount_cents)} total · Due {bill.due_date}
-                          {bill.amount_cents === 0 && (
-                            <span className="ml-2 text-amber-500 font-medium">· Needs amount</span>
-                          )}
-                        </p>
-                      </div>
-                      <div className="flex items-center gap-2">
+                    {/* Bill header */}
+                    <div className="flex items-start justify-between mb-1">
+                      <p className="text-base font-semibold text-stone-900 leading-tight">
+                        {bill.title}
+                      </p>
+                      <div className="flex items-center gap-0.5 ml-3 shrink-0">
                         <button
                           onClick={() => { setEditingBillId(bill.id); setEditError(''); setConfirmDeleteId(null) }}
-                          className="text-xs px-2 py-1 text-stone-500 hover:text-stone-700 hover:bg-stone-100 rounded-lg transition-colors"
+                          className="p-1.5 text-stone-400 hover:text-stone-700 hover:bg-stone-100 rounded-lg transition-colors"
+                          aria-label="Edit bill"
                         >
-                          Edit
+                          <Pencil size={14} />
                         </button>
                         <button
                           onClick={() => { setConfirmDeleteId(bill.id); setDeleteError(''); setEditingBillId(null) }}
-                          className="text-xs px-2 py-1 text-red-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                          className="p-1.5 text-stone-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors"
+                          aria-label="Delete bill"
                         >
-                          Delete
+                          <Trash2 size={14} />
                         </button>
-                        {bill.recurring && (
-                          <span className="text-xs font-medium px-2 py-1 rounded-full bg-blue-50 text-blue-600">
-                            Monthly
-                          </span>
-                        )}
-                        <span className={`text-xs font-medium px-2 py-1 rounded-full ${
-                          allPaid ? 'bg-emerald-100 text-emerald-700' : 'bg-stone-100 text-stone-500'
-                        }`}>
-                          {allPaid ? 'All paid' : 'Unpaid'}
-                        </span>
                       </div>
                     </div>
 
+                    {/* Amount + badges */}
+                    <div className="flex items-center gap-2 flex-wrap mb-1">
+                      <span className="text-2xl font-bold text-stone-900 tracking-tight">
+                        {formatCents(bill.amount_cents)}
+                      </span>
+                      {bill.recurring && (
+                        <span className="inline-flex items-center gap-1 text-xs font-medium px-2 py-0.5 rounded-full bg-blue-50 text-blue-600">
+                          <RefreshCw size={10} />
+                          Monthly
+                        </span>
+                      )}
+                      {needsAmount && (
+                        <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-amber-50 text-amber-600 border border-amber-100">
+                          Needs amount
+                        </span>
+                      )}
+                      <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${
+                        allPaid
+                          ? 'bg-emerald-100 text-emerald-700'
+                          : 'bg-stone-100 text-stone-500'
+                      }`}>
+                        {allPaid ? 'All paid' : 'Unpaid'}
+                      </span>
+                    </div>
+
+                    {/* Due date */}
+                    <p className="text-sm text-stone-500 mb-5">
+                      Due {formatDate(bill.due_date)}
+                    </p>
+
+                    {/* Delete confirmation */}
                     {confirmDeleteId === bill.id && (
-                      <div className="mb-4 p-3 rounded-xl bg-red-50 border border-red-200 space-y-2">
-                        <p className="text-sm text-red-700 font-medium">Delete this bill? This cannot be undone.</p>
+                      <div className="mb-4 p-4 rounded-xl bg-red-50 border border-red-200 space-y-3">
+                        <p className="text-sm text-red-700 font-medium">
+                          Delete this bill? This cannot be undone.
+                        </p>
                         {deleteError && <p className="text-xs text-red-600">{deleteError}</p>}
                         <div className="flex gap-2">
                           <button
@@ -284,7 +301,7 @@ export default function BillBoard({ householdId, currentUserId, bills }: Props) 
                           </button>
                           <button
                             onClick={() => { setConfirmDeleteId(null); setDeleteError('') }}
-                            className="px-3 py-1.5 bg-stone-100 hover:bg-stone-200 text-stone-700 text-xs font-medium rounded-lg transition-colors"
+                            className="px-3 py-1.5 bg-white hover:bg-stone-50 border border-stone-200 text-stone-700 text-xs font-medium rounded-lg transition-colors"
                           >
                             Cancel
                           </button>
@@ -292,30 +309,67 @@ export default function BillBoard({ householdId, currentUserId, bills }: Props) 
                       </div>
                     )}
 
-                    <div className="space-y-2">
+                    {/* Share rows */}
+                    <div className="border-t border-stone-100 pt-4 space-y-3">
                       {bill.shares?.map((share) => {
                         const isMe = share.user_id === currentUserId
                         const name = share.profile?.name ?? share.profile?.email ?? 'Roommate'
+                        const isPayingThis = payingShareId === share.id
 
                         return (
-                          <div key={share.id} className="flex items-center justify-between">
-                            <div className="flex items-center gap-2">
-                              <span className={`w-2 h-2 rounded-full ${share.paid_status ? 'bg-emerald-400' : 'bg-stone-300'}`} />
-                              <span className="text-sm text-stone-700">
-                                {isMe ? 'You' : name} — {formatCents(share.amount_cents)}
-                              </span>
+                          <div key={share.id}>
+                            <div className="flex items-center justify-between">
+                              <div className="flex items-center gap-2.5">
+                                <span className={`w-2 h-2 rounded-full shrink-0 ${share.paid_status ? 'bg-emerald-400' : 'bg-stone-300'}`} />
+                                <span className="text-sm text-stone-700">
+                                  {isMe ? 'You' : name}
+                                  <span className="text-stone-400 mx-1">·</span>
+                                  {formatCents(share.amount_cents)}
+                                </span>
+                              </div>
+                              {isMe && !share.paid_status && !isPayingThis && (
+                                <button
+                                  onClick={() => { setPayingShareId(share.id); setPaymentNote('') }}
+                                  disabled={isPending}
+                                  className="text-xs px-3 py-1.5 bg-emerald-500 hover:bg-emerald-600 text-white font-medium rounded-lg transition-colors disabled:opacity-50"
+                                >
+                                  Mark Paid
+                                </button>
+                              )}
+                              {share.paid_status && (
+                                <span className="text-xs font-medium text-emerald-600">
+                                  Paid
+                                  {share.payment_note && (
+                                    <span className="text-stone-400 font-normal ml-1">· {share.payment_note}</span>
+                                  )}
+                                </span>
+                              )}
                             </div>
-                            {isMe && !share.paid_status && (
-                              <button
-                                onClick={() => handlePaid(share.id)}
-                                disabled={isPending}
-                                className="text-xs px-3 py-1 bg-emerald-500 hover:bg-emerald-600 text-white rounded-lg transition-colors disabled:opacity-50"
-                              >
-                                Mark Paid
-                              </button>
-                            )}
-                            {share.paid_status && (
-                              <span className="text-xs text-emerald-600">Paid</span>
+
+                            {isPayingThis && (
+                              <div className="mt-2 pt-3 border-t border-stone-100 space-y-3">
+                                <Input
+                                  label="How did you pay?"
+                                  type="text"
+                                  placeholder="e.g. Sent via Venmo @username"
+                                  value={paymentNote}
+                                  onChange={(e) => setPaymentNote(e.target.value)}
+                                />
+                                <Button
+                                  variant="primary"
+                                  fullWidth
+                                  disabled={isPending || !paymentNote.trim()}
+                                  onClick={() => handlePaid(share.id, paymentNote.trim())}
+                                >
+                                  {isPending ? 'Saving...' : 'Confirm Payment'}
+                                </Button>
+                                <button
+                                  onClick={() => { setPayingShareId(null); setPaymentNote('') }}
+                                  className="block w-full text-center text-xs text-stone-400 hover:text-stone-600 transition-colors"
+                                >
+                                  Cancel
+                                </button>
+                              </div>
                             )}
                           </div>
                         )

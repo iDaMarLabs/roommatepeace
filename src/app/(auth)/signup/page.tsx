@@ -43,7 +43,17 @@ function SignupForm() {
   }
 
   return (
-    <div className="bg-white rounded-2xl shadow-sm border border-stone-200 p-8">
+    <>
+      <div className="text-center mb-8">
+        <p className="text-lg font-semibold text-stone-900 leading-snug mb-3">
+          Stop roommate resentment before it turns into roommate drama.
+        </p>
+        <p className="text-stone-500 text-sm leading-relaxed">
+          Roommate Peace helps college roommates and shared households stay clear on chores, bills, and house agreements before small problems become big arguments. For less than the cost of one late-night food order, everyone gets visible accountability, fewer awkward reminders, and a calmer place to live.
+        </p>
+      </div>
+
+      <div className="bg-white rounded-2xl shadow-sm border border-stone-200 p-8">
       <h2 className="text-xl font-semibold text-stone-900 mb-1">
         Create your account
       </h2>
@@ -116,6 +126,7 @@ function SignupForm() {
         </Link>
       </p>
     </div>
+    </>
   );
 }
 

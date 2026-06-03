@@ -78,6 +78,7 @@ export interface BillShare {
   amount_cents: number
   paid_status: boolean
   paid_at: string | null
+  payment_note: string | null
   profile?: Profile
 }
 

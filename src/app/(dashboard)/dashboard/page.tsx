@@ -1,32 +1,15 @@
 import { getUserHousehold, getHouseholdMembers, getPendingDepartureRequest } from '@/services/household.service'
+import { getBills } from '@/services/bill.service'
+import { getChores } from '@/services/chore.service'
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
-import Link from 'next/link'
-import { CheckSquare, Receipt, BookOpen } from 'lucide-react'
 import InviteSection from '@/components/household/InviteSection'
 import PlanSection from '@/components/household/PlanSection'
 import DepartureRequestBanner from '@/components/household/DepartureRequestBanner'
 
-const cards = [
-  {
-    href: '/chores',
-    label: 'Chores',
-    icon: CheckSquare,
-    description: 'Track who does what and when',
-  },
-  {
-    href: '/bills',
-    label: 'Bills',
-    icon: Receipt,
-    description: 'Split costs and track payments',
-  },
-  {
-    href: '/rules',
-    label: 'House Rules',
-    icon: BookOpen,
-    description: 'Set clear shared expectations',
-  },
-]
+function formatCents(cents: number) {
+  return (cents / 100).toLocaleString('en-US', { style: 'currency', currency: 'USD' })
+}
 
 export default async function DashboardPage({
   searchParams,
@@ -42,14 +25,54 @@ export default async function DashboardPage({
   } = await supabase.auth.getUser()
   if (!user) redirect('/login')
 
-  const [members, pendingDeparture] = await Promise.all([
+  const [members, pendingDeparture, bills, chores] = await Promise.all([
     getHouseholdMembers(household.id),
     getPendingDepartureRequest(household.id),
+    getBills(household.id),
+    getChores(household.id),
   ])
   const { upgraded } = await searchParams
 
+  const today = new Date().toISOString().split('T')[0]
+
+  const unpaidBills = bills.filter((b) => !b.shares?.every((s) => s.paid_status))
+  const unpaidCount = unpaidBills.length
+  const unpaidTotal = unpaidBills.reduce((sum, b) => {
+    const myShare = b.shares?.find((s) => s.user_id === user.id && !s.paid_status)
+    return sum + (myShare?.amount_cents ?? 0)
+  }, 0)
+
+  const overdueChores = chores.filter(
+    (c) => c.current_assignment !== null && c.current_assignment.due_date < today
+  ).length
+
+  const unassignedChores = chores.filter((c) => c.current_assignment === null).length
+
   const monthlyPriceId = process.env.STRIPE_PRICE_MONTHLY ?? ''
   const yearlyPriceId = process.env.STRIPE_PRICE_YEARLY ?? ''
+
+  const stats = [
+    {
+      value: formatCents(unpaidTotal),
+      label: 'you owe',
+      alert: unpaidTotal > 0,
+    },
+    {
+      value: String(unpaidCount),
+      label: unpaidCount === 1 ? 'unpaid bill' : 'unpaid bills',
+      alert: unpaidCount > 0,
+    },
+    {
+      value: String(overdueChores),
+      label: overdueChores === 1 ? 'overdue chore' : 'overdue chores',
+      alert: overdueChores > 0,
+    },
+    {
+      value: String(unassignedChores),
+      label: unassignedChores === 1 ? 'chore needs pickup' : 'chores need pickup',
+      alert: unassignedChores > 0,
+    },
+  ]
 
   return (
     <div>
@@ -67,24 +90,22 @@ export default async function DashboardPage({
         </div>
       )}
 
-      <div className="mb-8">
+      <div className="mb-6">
         <h1 className="text-2xl font-bold text-stone-900">{household.name}</h1>
-        <p className="text-stone-500 text-sm mt-1">Your household dashboard</p>
+        <p className="text-stone-600 text-sm mt-1">Your household dashboard</p>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
-        {cards.map(({ href, label, icon: Icon, description }) => (
-          <Link
-            key={href}
-            href={href}
-            className="bg-white border border-stone-200 rounded-2xl p-6 hover:border-emerald-300 hover:shadow-sm transition-all group"
-          >
-            <div className="w-10 h-10 bg-emerald-50 rounded-xl flex items-center justify-center mb-3 group-hover:bg-emerald-100 transition-colors">
-              <Icon size={20} className="text-emerald-600" />
-            </div>
-            <h2 className="font-semibold text-stone-900 mb-1">{label}</h2>
-            <p className="text-stone-500 text-sm">{description}</p>
-          </Link>
+      <div className="grid grid-cols-2 gap-3 mb-8">
+        {stats.map(({ value, label, alert }) => (
+          <div key={label} className="bg-stone-50 border border-stone-200 rounded-2xl p-4">
+            <div
+              className={`w-2 h-2 rounded-full mb-3 ${
+                alert ? 'bg-amber-400' : 'bg-emerald-400'
+              }`}
+            />
+            <p className="text-2xl font-bold text-stone-900 leading-none">{value}</p>
+            <p className="text-xs text-stone-500 mt-1.5">{label}</p>
+          </div>
         ))}
       </div>
 

@@ -33,8 +33,6 @@ export default function InviteSection({ householdId, inviteCode, memberCount, pl
   function handleRegenerate() {
     startTransition(async () => {
       await regenerateInviteCodeAction(householdId)
-      // The new code will come from the server on next render; for instant UI
-      // feedback we generate a placeholder UUID client-side and let revalidation sync it
       setCurrentCode(crypto.randomUUID())
     })
   }
@@ -42,7 +40,7 @@ export default function InviteSection({ householdId, inviteCode, memberCount, pl
   const limit = planTier === 'free' ? 3 : null
 
   return (
-    <div className="bg-white border border-stone-200 rounded-2xl p-6">
+    <div className="bg-white border border-stone-200 rounded-2xl p-6 shadow-sm">
       <div className="flex items-center justify-between mb-1">
         <h2 className="font-semibold text-stone-900">Invite Roommates</h2>
         {limit && (
@@ -51,21 +49,21 @@ export default function InviteSection({ householdId, inviteCode, memberCount, pl
           </span>
         )}
       </div>
-      <p className="text-stone-500 text-sm mb-4">
+      <p className="text-stone-600 text-sm mb-4">
         Share this link with your roommates so they can join.
       </p>
 
-      <div className="flex items-center gap-2 bg-stone-50 border border-stone-200 rounded-lg px-3 py-2 mb-4">
+      <div className="flex items-center gap-2 bg-stone-50 border border-stone-200 rounded-xl px-3 py-2.5 mb-5">
         <span className="flex-1 text-stone-600 text-sm truncate">{inviteUrl}</span>
         <button
           onClick={handleCopy}
-          className="shrink-0 text-xs font-medium text-emerald-600 hover:text-emerald-700 transition-colors"
+          className="shrink-0 text-xs font-medium px-2.5 py-1 bg-emerald-500 hover:bg-emerald-600 text-white rounded-lg transition-colors"
         >
           {copied ? 'Copied!' : 'Copy'}
         </button>
       </div>
 
-      <div className="flex justify-center mb-4">
+      <div className="flex justify-center mb-5">
         <QRCodeDisplay path={`/invite/${currentCode}`} size={160} />
       </div>
 

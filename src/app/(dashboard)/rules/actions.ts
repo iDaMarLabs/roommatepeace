@@ -1,7 +1,7 @@
 'use server'
 
 import { revalidatePath } from 'next/cache'
-import { acknowledgeRule, createRule, toggleRule } from '@/services/rule.service'
+import { acknowledgeRule, createRule, deleteRule, toggleRule } from '@/services/rule.service'
 
 export async function addRuleAction(formData: FormData) {
   const householdId = formData.get('householdId') as string
@@ -22,4 +22,11 @@ export async function toggleRuleAction(ruleId: string, active: boolean) {
 export async function acknowledgeRuleAction(ruleId: string) {
   await acknowledgeRule(ruleId)
   revalidatePath('/rules')
+}
+
+export async function deleteRuleAction(ruleId: string): Promise<{ error?: string }> {
+  const result = await deleteRule(ruleId)
+  if (result.error) return { error: result.error }
+  revalidatePath('/rules')
+  return {}
 }

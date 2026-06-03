@@ -1,4 +1,5 @@
 import { createClient } from '@/lib/supabase/server'
+import { createAdminClient } from '@/lib/supabase/admin'
 import type { Chore, ChoreAssignment, RecurrenceType, AssignedMode } from '@/types'
 
 const DEFAULT_CHORES: { title: string; recurrence_type: RecurrenceType }[] = [
@@ -177,4 +178,38 @@ export async function completeChore(assignmentId: string): Promise<boolean> {
   })
 
   return true
+}
+
+export async function deleteChore(choreId: string): Promise<{ error?: string }> {
+  const supabase = await createClient()
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+  if (!user) return { error: 'Not authenticated' }
+
+  const { data: chore } = await supabase
+    .from('chores')
+    .select('household_id')
+    .eq('id', choreId)
+    .maybeSingle()
+
+  if (!chore) return { error: 'Chore not found' }
+
+  const { data: member } = await supabase
+    .from('household_members')
+    .select('role')
+    .eq('household_id', chore.household_id)
+    .eq('user_id', user.id)
+    .maybeSingle()
+
+  if (member?.role !== 'owner') {
+    return { error: 'Only the household owner can delete chores.' }
+  }
+
+  const admin = createAdminClient()
+  await admin.from('chore_assignments').delete().eq('chore_id', choreId)
+
+  const { error } = await admin.from('chores').delete().eq('id', choreId)
+  if (error) return { error: 'Failed to delete chore.' }
+  return {}
 }

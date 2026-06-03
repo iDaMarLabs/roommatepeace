@@ -168,12 +168,14 @@ export async function deleteBill(billId: string): Promise<{ error?: string }> {
   return {}
 }
 
-export async function markSharePaid(shareId: string): Promise<boolean> {
+// Migration required if column doesn't exist:
+// ALTER TABLE bill_shares ADD COLUMN IF NOT EXISTS payment_note text;
+export async function markSharePaid(shareId: string, paymentNote: string): Promise<boolean> {
   const supabase = await createClient()
 
   const { data: share, error } = await supabase
     .from('bill_shares')
-    .update({ paid_status: true, paid_at: new Date().toISOString() })
+    .update({ paid_status: true, paid_at: new Date().toISOString(), payment_note: paymentNote })
     .eq('id', shareId)
     .select('bill_id')
     .single()
