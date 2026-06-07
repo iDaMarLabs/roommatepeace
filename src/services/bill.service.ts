@@ -13,10 +13,7 @@ export type BillWithShares = Bill & {
 const DEFAULT_BILLS: { title: string }[] = [
   { title: 'Rent' },
   { title: 'Electricity' },
-  { title: 'Gas' },
-  { title: 'Water / Sewer' },
   { title: 'Internet / WiFi' },
-  { title: 'Renters Insurance' },
 ]
 
 export async function getBills(householdId: string): Promise<BillWithShares[]> {

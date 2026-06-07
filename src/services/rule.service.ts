@@ -20,20 +20,8 @@ const DEFAULT_RULES: { title: string; description: string }[] = [
     description: 'Smoking of any kind is not permitted inside the home.',
   },
   {
-    title: 'Restock shared supplies',
-    description: 'Replace toilet paper, dish soap, or other shared supplies when you use the last of them.',
-  },
-  {
     title: 'Keep common areas clean',
     description: 'Living room, kitchen, and shared bathrooms should be kept reasonably tidy at all times.',
-  },
-  {
-    title: 'Communicate schedule changes',
-    description: 'Let roommates know in advance if your schedule affects shared spaces or parking.',
-  },
-  {
-    title: 'Split utilities equally',
-    description: 'All utility bills are split equally unless all roommates agree to a different arrangement.',
   },
 ]
 

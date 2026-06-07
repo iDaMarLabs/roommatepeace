@@ -4,17 +4,10 @@ import type { Chore, ChoreAssignment, RecurrenceType, AssignedMode } from '@/typ
 
 const DEFAULT_CHORES: { title: string; recurrence_type: RecurrenceType }[] = [
   { title: 'Take out trash', recurrence_type: 'weekly' },
-  { title: 'Take out recycling', recurrence_type: 'weekly' },
   { title: 'Vacuum / sweep floors', recurrence_type: 'weekly' },
-  { title: 'Mop floors', recurrence_type: 'biweekly' },
   { title: 'Clean bathroom sink & toilet', recurrence_type: 'weekly' },
-  { title: 'Clean shower / tub', recurrence_type: 'biweekly' },
   { title: 'Wipe down kitchen counters', recurrence_type: 'weekly' },
-  { title: 'Clean stovetop', recurrence_type: 'weekly' },
   { title: 'Wash dishes / run dishwasher', recurrence_type: 'daily' },
-  { title: 'Empty dishwasher', recurrence_type: 'daily' },
-  { title: 'Do laundry', recurrence_type: 'weekly' },
-  { title: 'Wipe down common surfaces', recurrence_type: 'weekly' },
 ]
 
 export async function seedDefaultChores(householdId: string): Promise<void> {
