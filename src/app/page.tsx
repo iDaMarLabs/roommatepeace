@@ -4,7 +4,17 @@ import { Home } from "lucide-react";
 import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
 
-export default async function LandingPage() {
+export default async function LandingPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ code?: string; error?: string }>
+}) {
+  const { code } = await searchParams;
+
+  if (code) {
+    redirect(`/auth/callback?code=${code}&next=/reset-password`);
+  }
+
   const cookieStore = await cookies();
 
   const supabase = createServerClient(
