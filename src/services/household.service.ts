@@ -99,10 +99,10 @@ export async function joinHousehold(
     .select('id', { count: 'exact', head: true })
     .eq('household_id', household.id)
 
-  if (household.plan_tier === 'free' && (count ?? 0) >= 3) {
+  if (household.plan_tier === 'free' && (count ?? 0) >= 2) {
     return {
       success: false,
-      error: 'This household has reached the 3-member limit on the free plan',
+      error: 'This household has reached the 2-member limit on the free plan',
     }
   }
 

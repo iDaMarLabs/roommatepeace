@@ -56,7 +56,7 @@ export async function createBill(
       .select('id', { count: 'exact', head: true })
       .eq('household_id', householdId)
     if ((count ?? 0) >= 3) {
-      return { data: null, error: 'Free plan is limited to 3 bills. Upgrade to add more.' }
+      return { data: null, error: 'Free plan is limited to 3 bills. Upgrade to track more.' }
     }
   }
 
