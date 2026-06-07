@@ -26,7 +26,7 @@ export default function NavBar({ userEmail, currentUserId, members }: NavBarProp
 
   async function handleLogout() {
     await createClient().auth.signOut()
-    router.push('/login')
+    router.push('/')
     router.refresh()
   }
 
