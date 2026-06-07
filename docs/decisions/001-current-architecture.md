@@ -43,12 +43,12 @@ Captured from actual code on 2026-05-18. These are decisions already made and in
 
 ## 4. Seeding on Household Creation
 
-**Decision:** When a household is created, seed 12 default chores, 6 default bills, and 8 default house rules automatically.
+**Decision:** When a household is created, seed 5 default chores, 3 default bills, and 5 default house rules automatically.
 
-**Why:** Reduces the blank-slate problem for new households. Default bills have `amount_cents: 0` as placeholders.
+**Why:** Reduces the blank-slate problem. Seed counts match free-plan limits exactly so new users start at capacity and immediately understand the upgrade value. Default bills have `amount_cents: 0` as placeholders.
 
 **Consequences:**
-- Every new household starts with content
+- Every new household starts at the free-plan limit — no headroom to add without upgrading
 - Bills with `$0` show a "Needs amount" indicator in the UI
 - Seeding happens synchronously in `createHousehold` before returning — no queue or background job
 
@@ -77,7 +77,7 @@ Captured from actual code on 2026-05-18. These are decisions already made and in
 - `chore_assignments` rows are created on demand, not scheduled
 - Due date is hardcoded to 7 days from pick-up
 - A chore can only have one pending assignment at a time (enforced by the UI, not a DB constraint)
-- Rotation mode (`assigned_mode: 'rotate'`) is in the schema but not implemented
+- Rotation mode (`assigned_mode: 'rotate'`) is implemented — on completion, next member by `joined_at` gets auto-assigned
 
 ---
 
@@ -109,15 +109,40 @@ Captured from actual code on 2026-05-18. These are decisions already made and in
 
 ---
 
-## 9. Stripe Is Not Implemented
+## 9. Stripe Is Fully Implemented
 
-**Decision:** Stripe keys exist and stub files exist, but no Stripe integration is wired up.
+**Decision:** Stripe Checkout, Customer Portal, and webhook handler are all live and verified in test mode.
 
 **Consequences:**
-- Free-plan limits are enforced only at the member join boundary (3 members max)
-- No limit is enforced on chores or bills (10 chore / 3 bill limits from the briefing are not in code)
-- `subscription.service.ts` and `lib/stripe/client.ts` are empty stubs
-- The webhook handler returns `{received: true}` with no processing
+- Free-plan limits enforced at create: 2 members, 5 chores, 3 bills
+- `subscription.service.ts` implements `upgradeToPremium`, `downgradeToFree`, `createCheckoutSession`, `createPortalSession`
+- Webhook at `/api/webhooks/stripe` verifies Stripe signature and handles `checkout.session.completed`, `customer.subscription.updated`, `customer.subscription.deleted`
+- Stripe Customer Portal configured in Stripe Dashboard
+- Currently test mode — switching to live mode requires new live keys + new webhook endpoint registration
+
+---
+
+## 11. Freemium Limits Designed to Force Upgrades
+
+**Decision:** Free plan limits are 2 members, 5 chores, 3 bills. Seed defaults match these limits exactly.
+
+**Why:** Original limits (3 members, 10 chores, 3 bills) covered everything most households needed — no upgrade pressure. New limits ensure most real roommate groups (3–4 people) hit the member wall immediately. At $7.99/mo split 3–4 ways, it's under $2/person.
+
+**Consequences:**
+- New households are seeded at their limit — any growth requires upgrading
+- The member limit is the primary upgrade driver; chore/bill limits are secondary
+
+---
+
+## 12. Password Reset Flow Routes Through Landing Page
+
+**Decision:** Supabase sends password reset codes to the Site URL (`https://www.roommatepeace.com/`). The landing page detects a `?code=` param and forwards to `/auth/callback?code=X&next=/reset-password`.
+
+**Why:** Supabase ignores `redirectTo` query params that don't exactly match the allowlist. Rather than fight the allowlist, the landing page acts as a pass-through for recovery codes.
+
+**Consequences:**
+- `/auth/callback` supports a `?next=` param to override the post-exchange redirect (default: `/dashboard`)
+- `/reset-password` calls `supabase.auth.updateUser({ password })` — requires an active recovery session from the exchange
 
 ---
 

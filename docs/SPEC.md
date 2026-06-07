@@ -1,60 +1,74 @@
 # Roommate Peace — What Is and Is Not Built
 
-Updated 2026-05-25.
+Updated 2026-06-07.
 
 ## Built and Working
 
 ### Authentication
 - Email/password signup with name field
 - Supabase email confirmation (`/auth/callback` exchanges code for session)
-- Login with email/password; logout via `supabase.auth.signOut()`
+- Login with email/password; logout via `supabase.auth.signOut()` → redirects to `/`
 - Auth guard in `proxy.ts` covers `/dashboard/*` and `/setup`
 - Auto-profile creation via Supabase trigger on `auth.users`
+- Forgot password (`/forgot-password`) — sends Supabase reset email via Resend
+- Reset password (`/reset-password`) — exchanges code, sets new password
+- Landing page (`/`) detects `?code=` param from password reset email and forwards to `/auth/callback`
+
+### Landing Page
+- Public marketing page at `/` with hero, 3 feature cards, and CTAs
+- Authenticated users redirected to `/dashboard`
+- Logo on auth pages (login, signup, forgot/reset password) links to `/`
 
 ### Invite Flow
 - `/invite/[code]` — shows household name, QR code, join button
 - Unauthenticated: links to `/signup?invite={code}` / `/login?invite={code}`
-- Signup: `emailRedirectTo` passes invite through confirmation email → `/auth/callback?invite=` → `/invite/{code}`
-- Login: redirects to `/invite/{code}` after auth
-- `joinHousehold` enforces free-plan 3-member limit at join time
+- Authenticated users are auto-joined and redirected to dashboard — no extra button step
+- `joinHousehold` enforces free-plan 2-member limit at join time
 - `regenerateInviteCode` invalidates old link by replacing UUID
 
 ### Household Creation
 - `/setup` → `POST /api/households` → creates household + inserts owner member
-- Seeds 12 default chores, 6 default bills ($0 placeholder), 8 default house rules
+- Seeds 5 default chores, 3 default bills ($0 placeholder), 5 default house rules
+- Household name is editable from Settings via `RenameHouseholdSection`
 
 ### Navigation
-- Header shows all household members with initials and name; current user highlighted in emerald
-- Invite flow: authenticated users who open an invite link are auto-joined and redirected to dashboard — no extra button step
+- NavBar shows all household members with initials; current user highlighted in emerald
+- Logo in NavBar links to `/`; logout redirects to `/`
+- NavBar links: Dashboard, Chores, Bills, Rules, Settings
 
 ### Dashboard
-- Household name, cards to Chores / Bills / Rules
+- Household name with inline Premium badge (if applicable)
+- 4 stat cards (you owe, unpaid bills, overdue chores, chores need pickup) — each clickable to the relevant section
 - `InviteSection` — copyable invite link, QR code, regenerate button
 - `PlanSection` — shows current plan (Free/Premium), upgrade buttons (owner only), "Manage billing" link for premium owners
+- `?upgraded=true` banner after successful checkout
 
 ### Stripe Paywall
 - `POST /api/checkout` — creates Stripe Checkout Session (hosted page), validates price against allowlist, owner-only
 - `POST /api/customer-portal` — creates Stripe Customer Portal session for subscription management
 - `POST /api/webhooks/stripe` — handles `checkout.session.completed` (upgrades household), `customer.subscription.updated`, `customer.subscription.deleted` (downgrades)
 - `services/subscription.service.ts` — `upgradeToPremium`, `downgradeToFree`, `createCheckoutSession`, `createPortalSession`
-- Free plan limits enforced: 3 members (at join), 10 chores (at create), 3 bills (at create)
+- Free plan limits enforced: 2 members (at join), 5 chores (at create), 3 bills (at create)
 - Limit error surfaces inline in ChoreBoard / BillBoard forms
-- `?upgraded=true` banner on dashboard after successful checkout
+- All env vars wired in production (Vercel): `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, `STRIPE_PRICE_MONTHLY`, `STRIPE_PRICE_YEARLY`
+- Currently in Stripe test mode; live mode pending
 
 ### Chores
 - List active chores with current assignment status
 - Add chore: title, description (optional), recurrence, rotate toggle
+- Delete chore
 - Pick up unassigned chore → assignment due in 7 days
 - Mark your chore done
-- Round-robin rotation: `assigned_mode: 'rotate'` — on completion, next member (by `joined_at`) gets auto-assignment at correct recurrence interval
+- Round-robin rotation: `assigned_mode: 'rotate'` — on completion, next member (by `joined_at`) gets auto-assignment
 - Overdue pending assignments marked `missed` by daily cron
-- Free plan: max 10 active chores enforced at create
+- Free plan: max 5 active chores enforced at create
 
 ### Bills
 - List all bills by due date with per-person share breakdown
 - Add bill: title, amount, due date — equal split across current members
-- Mark your share paid
 - Edit existing bill: title, amount, due date — recalculates equal shares for all members
+- Delete bill
+- Mark your share paid
 - Bills with `$0` show "Needs amount" indicator
 - Free plan: max 3 bills enforced at create
 
@@ -62,13 +76,21 @@ Updated 2026-05-25.
 - List active and inactive rules
 - Add rule: title + optional description
 - Toggle active / deactivate / reactivate
-- Rule acknowledgements: each active rule shows per-member status (✓ acknowledged / ○ pending); current user sees "Acknowledge" button until they confirm; once confirmed, button is replaced by read-only acknowledged state
+- Delete rule
+- Rule acknowledgements: each active rule shows per-member status; current user sees "Acknowledge" button until confirmed
+
+### Settings
+- Leave household / departure request flow
+- Departure request: enter amounts paid toward each unpaid bill + how you paid (free-text note per bill)
+- Cancel leave request
+- Rename household
+- Owner with sole membership deletes household instead of leaving
 
 ### Email Reminders (Resend)
 - `GET /api/cron/reminders` — bearer-token protected via `CRON_SECRET`
 - Marks overdue pending chore assignments as `missed` first
 - Sends one email per user for chores + bills due today or tomorrow
-- Logs each sent item to `reminder_events` (user_id, type, reference_id, channel)
+- All env vars wired in production: `RESEND_API_KEY`, `RESEND_FROM_EMAIL`, `CRON_SECRET`
 
 ---
 
@@ -76,10 +98,9 @@ Updated 2026-05-25.
 
 | Item | Status |
 |------|--------|
-| `RESEND_API_KEY` | Not filled in `.env.local` — reminder emails will fail silently |
-| `CRON_SECRET` | Not set — cron endpoint returns 401 |
-| `STRIPE_WEBHOOK_SECRET` | Not set yet — must register webhook in Stripe dashboard first |
-| Stripe Customer Portal | Requires Stripe dashboard config (portal settings must be saved) |
+| `user.service.ts` | Empty stub — no user-level operations implemented |
+| Stripe live mode | Currently test mode; switch requires new live-mode keys + webhook |
+| `reminder_events` logging | Cron runs but does not log to `reminder_events` table |
 
 ---
 
@@ -89,6 +110,6 @@ Updated 2026-05-25.
 |---------|-------|
 | Custom bill splits | `split_type: 'custom'` in schema; only equal implemented |
 | Weekly snapshot email | Not started |
-| Push notifications | Type exists; only email implemented |
+| Push notifications | Type exists in schema; only email implemented |
 | Fairness score | Cut from MVP |
 | In-app chat | Cut from MVP |

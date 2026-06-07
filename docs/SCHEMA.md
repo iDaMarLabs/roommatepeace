@@ -71,7 +71,7 @@ Junction table linking users to households.
 | `description`        | text      | nullable                                              |
 | `recurrence_type`    | text      | `'daily'` \| `'weekly'` \| `'biweekly'` \| `'monthly'` \| `'none'` |
 | `recurrence_interval`| integer   | always `1` in current code                            |
-| `assigned_mode`      | text      | `'fixed'` \| `'rotate'` (rotate not implemented)     |
+| `assigned_mode`      | text      | `'fixed'` \| `'rotate'`                              |
 | `active`             | boolean   |                                                       |
 | `created_at`         | timestamptz |                                                     |
 
@@ -134,7 +134,7 @@ Per-user portion of a bill.
 ---
 
 ### `rule_acknowledgements`
-Exists in DB per briefing. No service code or UI reads or writes to it.
+Implemented — UI shows per-member acknowledgement status on the rules page; current user sees "Acknowledge" button until confirmed.
 
 | Column       | Type      | Notes                         |
 |--------------|-----------|-------------------------------|
@@ -145,8 +145,49 @@ Exists in DB per briefing. No service code or UI reads or writes to it.
 
 ---
 
+### `departure_requests`
+
+| Column                | Type      | Notes                                      |
+|-----------------------|-----------|--------------------------------------------|
+| `id`                  | uuid PK   |                                            |
+| `household_id`        | uuid      | FK → `households.id`                       |
+| `requesting_user_id`  | uuid      | FK → `profiles.id`                         |
+| `status`              | text      | `'pending'` \| `'completed'` \| `'cancelled'` |
+| `created_at`          | timestamptz |                                          |
+
+---
+
+### `departure_bill_payments`
+
+| Column                  | Type      | Notes                                   |
+|-------------------------|-----------|-----------------------------------------|
+| `id`                    | uuid PK   |                                         |
+| `departure_request_id`  | uuid      | FK → `departure_requests.id`            |
+| `bill_id`               | uuid      | FK → `bills.id`                         |
+| `amount_paid_cents`     | integer   |                                         |
+| `payment_note`          | text      | nullable; how the departing member paid |
+
+Migration if column not present:
+```sql
+ALTER TABLE departure_bill_payments
+  ADD COLUMN IF NOT EXISTS payment_note text;
+```
+
+---
+
+### `departure_acknowledgements`
+
+| Column                | Type      | Notes                                      |
+|-----------------------|-----------|--------------------------------------------|
+| `id`                  | uuid PK   |                                            |
+| `departure_request_id`| uuid      | FK → `departure_requests.id`               |
+| `member_user_id`      | uuid      | FK → `profiles.id`                         |
+| `created_at`          | timestamptz |                                          |
+
+---
+
 ### `reminder_events`
-Exists in DB per briefing. The cron job does not write to it.
+Cron writes here to track sent reminder events (one row per user per chore/bill reminder sent).
 
 | Column         | Type      | Notes                         |
 |----------------|-----------|-------------------------------|
