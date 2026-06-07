@@ -104,6 +104,7 @@ export interface DepartureBillPayment {
   departure_request_id: string
   bill_id: string
   amount_paid_cents: number
+  payment_note?: string | null
   bill?: { id: string; title: string; amount_cents: number }
 }
 

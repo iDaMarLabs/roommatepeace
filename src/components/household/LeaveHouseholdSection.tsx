@@ -38,6 +38,9 @@ export default function LeaveHouseholdSection({
   const [payments, setPayments] = useState<Record<string, string>>(
     Object.fromEntries(unpaidBills.map((b) => [b.id, '0']))
   )
+  const [paymentNotes, setPaymentNotes] = useState<Record<string, string>>(
+    Object.fromEntries(unpaidBills.map((b) => [b.id, '']))
+  )
   const [isPending, startTransition] = useTransition()
 
   if (isOwner && memberCount > 1) {
@@ -74,11 +77,16 @@ export default function LeaveHouseholdSection({
           <div className="space-y-2">
             <p className="text-xs font-medium text-stone-600 uppercase tracking-wide">Bills pending discussion</p>
             {existingRequest.bill_payments.map((bp) => (
-              <div key={bp.id} className="flex justify-between text-sm text-stone-700 bg-stone-50 rounded-lg px-3 py-2">
-                <span>{bp.bill?.title ?? 'Bill'}</span>
-                <span className="text-stone-500">
-                  {formatCents(bp.amount_paid_cents)} paid of {formatCents(bp.bill?.amount_cents ?? 0)}
-                </span>
+              <div key={bp.id} className="text-sm text-stone-700 bg-stone-50 rounded-lg px-3 py-2 space-y-0.5">
+                <div className="flex justify-between">
+                  <span>{bp.bill?.title ?? 'Bill'}</span>
+                  <span className="text-stone-500">
+                    {formatCents(bp.amount_paid_cents)} paid of {formatCents(bp.bill?.amount_cents ?? 0)}
+                  </span>
+                </div>
+                {bp.payment_note && (
+                  <p className="text-xs text-stone-400">Paid via: {bp.payment_note}</p>
+                )}
               </div>
             ))}
           </div>
@@ -123,7 +131,7 @@ export default function LeaveHouseholdSection({
         setError(`Amount paid for "${bill.title}" cannot exceed the bill total.`)
         return null
       }
-      return { billId: bill.id, amountPaidCents: cents }
+      return { billId: bill.id, amountPaidCents: cents, paymentNote: paymentNotes[bill.id] || undefined }
     })
 
     if (billPayments.some((p) => p === null)) return
@@ -183,6 +191,15 @@ export default function LeaveHouseholdSection({
                       value={payments[bill.id] ?? '0'}
                       onChange={(e) => handlePaymentChange(bill.id, e.target.value)}
                       className="w-28 rounded-lg border border-stone-200 px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                    />
+                  </div>
+                  <div>
+                    <input
+                      type="text"
+                      placeholder="How did you pay? (e.g. Venmo, cash, Zelle)"
+                      value={paymentNotes[bill.id] ?? ''}
+                      onChange={(e) => setPaymentNotes((prev) => ({ ...prev, [bill.id]: e.target.value }))}
+                      className="w-full rounded-lg border border-stone-200 px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
                     />
                   </div>
                 </div>

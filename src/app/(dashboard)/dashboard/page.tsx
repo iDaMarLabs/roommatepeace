@@ -3,6 +3,7 @@ import { getBills } from '@/services/bill.service'
 import { getChores } from '@/services/chore.service'
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
+import Link from 'next/link'
 import InviteSection from '@/components/household/InviteSection'
 import PlanSection from '@/components/household/PlanSection'
 import DepartureRequestBanner from '@/components/household/DepartureRequestBanner'
@@ -56,21 +57,25 @@ export default async function DashboardPage({
       value: formatCents(unpaidTotal),
       label: 'you owe',
       alert: unpaidTotal > 0,
+      href: '/bills',
     },
     {
       value: String(unpaidCount),
       label: unpaidCount === 1 ? 'unpaid bill' : 'unpaid bills',
       alert: unpaidCount > 0,
+      href: '/bills',
     },
     {
       value: String(overdueChores),
       label: overdueChores === 1 ? 'overdue chore' : 'overdue chores',
       alert: overdueChores > 0,
+      href: '/chores',
     },
     {
       value: String(unassignedChores),
       label: unassignedChores === 1 ? 'chore needs pickup' : 'chores need pickup',
       alert: unassignedChores > 0,
+      href: '/chores',
     },
   ]
 
@@ -91,13 +96,20 @@ export default async function DashboardPage({
       )}
 
       <div className="mb-6">
-        <h1 className="text-2xl font-bold text-stone-900">{household.name}</h1>
+        <div className="flex items-center gap-2">
+          <h1 className="text-2xl font-bold text-stone-900">{household.name}</h1>
+          {household.plan_tier === 'premium' && (
+            <span className="text-xs font-semibold bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full">
+              Premium
+            </span>
+          )}
+        </div>
         <p className="text-stone-600 text-sm mt-1">Your household dashboard</p>
       </div>
 
       <div className="grid grid-cols-2 gap-3 mb-8">
-        {stats.map(({ value, label, alert }) => (
-          <div key={label} className="bg-stone-50 border border-stone-200 rounded-2xl p-4">
+        {stats.map(({ value, label, alert, href }) => (
+          <Link key={label} href={href} className="bg-stone-50 border border-stone-200 rounded-2xl p-4 hover:bg-stone-100 transition-colors">
             <div
               className={`w-2 h-2 rounded-full mb-3 ${
                 alert ? 'bg-amber-400' : 'bg-emerald-400'
@@ -105,7 +117,7 @@ export default async function DashboardPage({
             />
             <p className="text-2xl font-bold text-stone-900 leading-none">{value}</p>
             <p className="text-xs text-stone-500 mt-1.5">{label}</p>
-          </div>
+          </Link>
         ))}
       </div>
 
