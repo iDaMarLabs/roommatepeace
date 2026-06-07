@@ -91,7 +91,14 @@ export default async function DashboardPage({
       )}
 
       <div className="mb-6">
-        <h1 className="text-2xl font-bold text-stone-900">{household.name}</h1>
+        <div className="flex items-center gap-2">
+          <h1 className="text-2xl font-bold text-stone-900">{household.name}</h1>
+          {household.plan_tier === 'premium' && (
+            <span className="text-xs font-semibold bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full">
+              Premium
+            </span>
+          )}
+        </div>
         <p className="text-stone-600 text-sm mt-1">Your household dashboard</p>
       </div>
 
