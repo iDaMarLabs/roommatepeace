@@ -6,7 +6,7 @@ import { redirect } from 'next/navigation'
 
 export async function requestLeaveAction(
   householdId: string,
-  billPayments: { billId: string; amountPaidCents: number }[]
+  billPayments: { billId: string; amountPaidCents: number; paymentNote?: string }[]
 ): Promise<{ error?: string }> {
   const result = await requestLeave(householdId, billPayments)
 
@@ -15,7 +15,7 @@ export async function requestLeaveAction(
   }
 
   if (result.deleted || result.left) {
-    redirect('/login')
+    redirect('/')
   }
 
   revalidatePath('/settings')

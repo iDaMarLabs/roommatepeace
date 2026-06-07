@@ -37,7 +37,7 @@ export default function NavBar({ userEmail, currentUserId, members }: NavBarProp
         <div className="flex items-center justify-between h-12">
           <div className="w-10" />
           <Link
-            href="/dashboard"
+            href="/"
             className="flex flex-col items-center hover:text-emerald-600 transition-colors group"
           >
             <span className="text-lg font-bold text-stone-900 group-hover:text-emerald-600 transition-colors leading-tight">

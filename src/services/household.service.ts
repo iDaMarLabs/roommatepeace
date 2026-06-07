@@ -134,7 +134,7 @@ export async function getPendingDepartureRequest(
 
 export async function requestLeave(
   householdId: string,
-  billPayments: { billId: string; amountPaidCents: number }[]
+  billPayments: { billId: string; amountPaidCents: number; paymentNote?: string }[]
 ): Promise<{ error?: string; left?: boolean; pending?: boolean; deleted?: boolean }> {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
@@ -190,6 +190,7 @@ export async function requestLeave(
         departure_request_id: request.id,
         bill_id: p.billId,
         amount_paid_cents: p.amountPaidCents,
+        payment_note: p.paymentNote ?? null,
       }))
     )
   }
