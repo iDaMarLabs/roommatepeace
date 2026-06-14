@@ -1,6 +1,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import type { Bill, BillShare } from '@/types'
+import { createNotification } from '@/services/notifications.service'
 
 export type ShareWithProfile = BillShare & {
   profile: { id: string; name: string | null; email: string } | null
@@ -262,6 +263,87 @@ export async function getUnpaidBillsForMember(
     }
   }
   return result
+}
+
+export async function recalculateSharesForNewMember(
+  householdId: string,
+  newUserId: string
+): Promise<void> {
+  const supabase = await createClient()
+
+  const { data: bills } = await supabase
+    .from('bills')
+    .select('id, title, amount_cents, bill_shares(id, user_id, amount_cents, paid_status)')
+    .eq('household_id', householdId)
+    .eq('status', 'unpaid')
+
+  if (!bills || bills.length === 0) return
+
+  const { data: ownerRow } = await supabase
+    .from('household_members')
+    .select('user_id')
+    .eq('household_id', householdId)
+    .eq('role', 'owner')
+    .maybeSingle()
+
+  for (const bill of bills) {
+    const shares = bill.bill_shares as {
+      id: string
+      user_id: string
+      amount_cents: number
+      paid_status: boolean
+    }[]
+
+    const paidShares = shares.filter((s) => s.paid_status)
+    const unpaidShares = shares.filter((s) => !s.paid_status)
+
+    if (unpaidShares.length === 0) continue
+
+    const paidTotal = paidShares.reduce((sum, s) => sum + s.amount_cents, 0)
+    const remainingTotal = bill.amount_cents - paidTotal
+    const newUnpaidCount = unpaidShares.length + 1
+    const newShareAmount = Math.round(remainingTotal / newUnpaidCount)
+
+    for (const share of unpaidShares) {
+      await supabase
+        .from('bill_shares')
+        .update({ amount_cents: newShareAmount })
+        .eq('id', share.id)
+    }
+
+    await supabase.from('bill_shares').insert({
+      bill_id: bill.id,
+      user_id: newUserId,
+      amount_cents: newShareAmount,
+      paid_status: false,
+    })
+
+    for (const paid of paidShares) {
+      const oldShareAmount = paid.amount_cents
+      const fairShare = Math.round(bill.amount_cents / (shares.length + 1))
+      const credit = oldShareAmount - fairShare
+      if (credit <= 0) continue
+
+      const creditFormatted = (credit / 100).toLocaleString('en-US', {
+        style: 'currency',
+        currency: 'USD',
+      })
+
+      if (ownerRow && ownerRow.user_id !== paid.user_id) {
+        await createNotification(
+          householdId,
+          ownerRow.user_id,
+          `A new member joined after someone already paid $${(paid.amount_cents / 100).toFixed(2)} toward "${bill.title}". They may be owed a ${creditFormatted} credit adjustment.`
+        )
+      }
+
+      await createNotification(
+        householdId,
+        paid.user_id,
+        `You may be owed a ${creditFormatted} credit on "${bill.title}" because a new member joined after you paid. Your household owner has been notified.`
+      )
+    }
+  }
 }
 
 export async function seedDefaultBills(householdId: string, userId: string): Promise<void> {

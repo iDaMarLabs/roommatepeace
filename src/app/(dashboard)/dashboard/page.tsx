@@ -1,12 +1,14 @@
 import { getUserHousehold, getHouseholdMembers, getPendingDepartureRequest } from '@/services/household.service'
 import { getBills } from '@/services/bill.service'
 import { getChores } from '@/services/chore.service'
+import { getNotificationsForUser } from '@/services/notifications.service'
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import InviteSection from '@/components/household/InviteSection'
 import PlanSection from '@/components/household/PlanSection'
 import DepartureRequestBanner from '@/components/household/DepartureRequestBanner'
+import NotificationBanner from '@/components/household/NotificationBanner'
 
 function formatCents(cents: number) {
   return (cents / 100).toLocaleString('en-US', { style: 'currency', currency: 'USD' })
@@ -26,11 +28,12 @@ export default async function DashboardPage({
   } = await supabase.auth.getUser()
   if (!user) redirect('/login')
 
-  const [members, pendingDeparture, bills, chores] = await Promise.all([
+  const [members, pendingDeparture, bills, chores, notifications] = await Promise.all([
     getHouseholdMembers(household.id),
     getPendingDepartureRequest(household.id),
     getBills(household.id),
     getChores(household.id),
+    getNotificationsForUser(household.id),
   ])
   const { upgraded } = await searchParams
 
@@ -88,6 +91,8 @@ export default async function DashboardPage({
           memberCount={members.length}
         />
       )}
+
+      <NotificationBanner notifications={notifications} />
 
       {upgraded === 'true' && (
         <div className="mb-6 p-4 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-sm font-medium">

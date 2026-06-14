@@ -1,7 +1,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { seedDefaultChores } from '@/services/chore.service'
-import { seedDefaultBills } from '@/services/bill.service'
+import { seedDefaultBills, recalculateSharesForNewMember } from '@/services/bill.service'
 import { seedDefaultRules } from '@/services/rule.service'
 import type { Household, HouseholdMember, DepartureRequest } from '@/types'
 
@@ -111,6 +111,9 @@ export async function joinHousehold(
     .insert({ household_id: household.id, user_id: user.id, role: 'member' })
 
   if (error) return { success: false, error: 'Failed to join household' }
+
+  await recalculateSharesForNewMember(household.id, user.id)
+
   return { success: true }
 }
 
