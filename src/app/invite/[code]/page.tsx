@@ -1,5 +1,5 @@
 import { getHouseholdByInviteCode } from '@/services/household.service'
-import { getBills } from '@/services/bill.service'
+import { getUnpaidBillCount } from '@/services/bill.service'
 import { createClient } from '@/lib/supabase/server'
 import Link from 'next/link'
 import QRCodeDisplay from '@/components/ui/QRCodeDisplay'
@@ -30,8 +30,7 @@ export default async function InvitePage({
   } = await supabase.auth.getUser()
 
   if (user) {
-    const bills = await getBills(household.id)
-    const unpaidBills = bills.filter((b) => !b.shares?.every((s) => s.paid_status))
+    const unpaidBillCount = await getUnpaidBillCount(household.id)
 
     return (
       <div className="min-h-screen flex items-center justify-center bg-stone-50 px-4">
@@ -49,10 +48,10 @@ export default async function InvitePage({
               Review what you are joining before accepting.
             </p>
 
-            {unpaidBills.length > 0 && (
+            {unpaidBillCount > 0 && (
               <div className="mb-6 p-4 rounded-xl bg-amber-50 border border-amber-200">
                 <p className="text-sm font-medium text-amber-900 mb-1">
-                  {unpaidBills.length} unpaid {unpaidBills.length === 1 ? 'bill' : 'bills'} already exist
+                  {unpaidBillCount} unpaid {unpaidBillCount === 1 ? 'bill' : 'bills'} already exist
                 </p>
                 <p className="text-xs text-amber-700">
                   Your share of these bills will be recalculated to include you. Members who already paid may be owed a credit adjustment.

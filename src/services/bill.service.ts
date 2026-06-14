@@ -17,6 +17,16 @@ const DEFAULT_BILLS: { title: string }[] = [
   { title: 'Internet / WiFi' },
 ]
 
+export async function getUnpaidBillCount(householdId: string): Promise<number> {
+  const admin = createAdminClient()
+  const { count } = await admin
+    .from('bills')
+    .select('id', { count: 'exact', head: true })
+    .eq('household_id', householdId)
+    .eq('status', 'unpaid')
+  return count ?? 0
+}
+
 export async function getBills(householdId: string): Promise<BillWithShares[]> {
   const supabase = await createClient()
 
