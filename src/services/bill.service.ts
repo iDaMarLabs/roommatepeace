@@ -269,9 +269,9 @@ export async function recalculateSharesForNewMember(
   householdId: string,
   newUserId: string
 ): Promise<void> {
-  const supabase = await createClient()
+  const admin = createAdminClient()
 
-  const { data: bills } = await supabase
+  const { data: bills } = await admin
     .from('bills')
     .select('id, title, amount_cents, bill_shares(id, user_id, amount_cents, paid_status)')
     .eq('household_id', householdId)
@@ -279,7 +279,7 @@ export async function recalculateSharesForNewMember(
 
   if (!bills || bills.length === 0) return
 
-  const { data: ownerRow } = await supabase
+  const { data: ownerRow } = await admin
     .from('household_members')
     .select('user_id')
     .eq('household_id', householdId)
@@ -305,13 +305,13 @@ export async function recalculateSharesForNewMember(
     const newShareAmount = Math.round(remainingTotal / newUnpaidCount)
 
     for (const share of unpaidShares) {
-      await supabase
+      await admin
         .from('bill_shares')
         .update({ amount_cents: newShareAmount })
         .eq('id', share.id)
     }
 
-    await supabase.from('bill_shares').insert({
+    await admin.from('bill_shares').insert({
       bill_id: bill.id,
       user_id: newUserId,
       amount_cents: newShareAmount,
