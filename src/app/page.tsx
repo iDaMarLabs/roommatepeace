@@ -84,7 +84,23 @@ export default async function LandingPage({
             Sign in
           </Link>
         </div>
-        <p className="text-stone-400 text-sm mt-6">Free plan: 2 roommates, 3 bills, 3 chores, 3 rules. No credit card required.</p>
+        <div className="flex items-center justify-center gap-5 mt-6 flex-wrap">
+          <div className="flex items-baseline gap-1.5">
+            <span className="font-bold text-stone-700 text-xl">2</span>
+            <span className="text-stone-400 text-sm font-medium">Roommates</span>
+          </div>
+          <div className="w-px h-7 bg-stone-200" />
+          <div className="flex items-center gap-2">
+            <span className="font-bold text-stone-700 text-4xl leading-none">3</span>
+            <div className="flex flex-col text-stone-400 font-medium" style={{ fontSize: '11px', lineHeight: '14px' }}>
+              <span>Bills</span>
+              <span>Chores</span>
+              <span>Rules</span>
+            </div>
+          </div>
+          <div className="w-px h-7 bg-stone-200" />
+          <span className="text-stone-400 text-xs">No credit card required.</span>
+        </div>
       </main>
 
       {/* Features */}
