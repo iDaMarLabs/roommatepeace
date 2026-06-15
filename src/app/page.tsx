@@ -84,23 +84,24 @@ export default async function LandingPage({
             Sign in
           </Link>
         </div>
-        <div className="mt-6">
-          <p className="text-stone-400 text-xs mb-3">Free plan:</p>
-          <div className="flex items-center justify-center gap-3 flex-wrap">
-            <div className="bg-white rounded-xl border border-stone-200 px-4 py-3 shadow-sm flex items-center gap-2">
-              <span className="font-bold text-stone-700 text-3xl leading-none">2</span>
-              <span className="text-stone-500 text-sm font-medium">Roommates</span>
+        <div className="mt-6 bg-white rounded-2xl border border-stone-200 p-6 shadow-sm inline-flex flex-col items-center gap-4">
+          <p className="text-stone-500 text-sm font-semibold">Free plan:</p>
+          <div className="flex items-center gap-6">
+            <div className="flex items-center gap-2">
+              <span className="font-bold text-stone-900 text-3xl leading-none">2</span>
+              <span className="text-stone-500 text-sm leading-relaxed">Roommates</span>
             </div>
-            <div className="bg-white rounded-xl border border-stone-200 px-4 py-3 shadow-sm flex items-center gap-2">
-              <span className="font-bold text-stone-700 text-3xl leading-none">3</span>
-              <div className="flex flex-col text-stone-500 font-medium" style={{ fontSize: '10px', lineHeight: '10px' }}>
+            <div className="w-px h-8 bg-stone-200" />
+            <div className="flex items-center gap-2">
+              <span className="font-bold text-stone-900 text-3xl leading-none">3</span>
+              <div className="flex flex-col text-stone-500 text-sm leading-relaxed">
                 <span>Bills</span>
                 <span>Chores</span>
                 <span>Rules</span>
               </div>
             </div>
           </div>
-          <p className="text-stone-400 text-xs mt-3">No credit card required.</p>
+          <p className="text-stone-400 text-sm">No credit card required.</p>
         </div>
       </main>
 
