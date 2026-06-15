@@ -2,6 +2,7 @@
 
 import { useState, useTransition } from 'react'
 import { CheckSquare, Trash2 } from 'lucide-react'
+import Link from 'next/link'
 import {
   addChoreAction,
   pickUpChoreAction,
@@ -100,7 +101,13 @@ export default function ChoreBoard({ householdId, currentUserId, chores }: Props
           <h2 className="font-semibold text-stone-900 mb-4">New chore</h2>
           {formError && (
             <div className="mb-4 p-3 rounded-lg bg-red-50 border border-red-200 text-red-700 text-sm">
-              {formError}
+              {formError.includes('Upgrade') ? (
+                <>
+                  {formError.split('Upgrade')[0]}
+                  <Link href="/dashboard" className="font-semibold underline">Upgrade</Link>
+                  {formError.split('Upgrade')[1]}
+                </>
+              ) : formError}
             </div>
           )}
           <input type="hidden" name="householdId" value={householdId} />

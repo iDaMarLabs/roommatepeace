@@ -109,7 +109,7 @@ export default function PlanSection({
         </span>
       </div>
       <p className="text-stone-600 text-sm mb-4">
-        Free plan: up to 2 roommates, 5 chores, 3 bills.
+        Free plan: up to 2 roommates, 3 bills, 3 chores, 3 rules.
       </p>
 
       {isOwner ? (

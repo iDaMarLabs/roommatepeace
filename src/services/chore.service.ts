@@ -5,8 +5,6 @@ import type { Chore, ChoreAssignment, RecurrenceType, AssignedMode } from '@/typ
 const DEFAULT_CHORES: { title: string; recurrence_type: RecurrenceType }[] = [
   { title: 'Take out trash', recurrence_type: 'weekly' },
   { title: 'Vacuum / sweep floors', recurrence_type: 'weekly' },
-  { title: 'Clean bathroom sink & toilet', recurrence_type: 'weekly' },
-  { title: 'Wipe down kitchen counters', recurrence_type: 'weekly' },
   { title: 'Wash dishes / run dishwasher', recurrence_type: 'daily' },
 ]
 
@@ -73,8 +71,8 @@ export async function createChore(
       .select('id', { count: 'exact', head: true })
       .eq('household_id', householdId)
       .eq('active', true)
-    if ((count ?? 0) >= 5) {
-      return { data: null, error: 'Free plan is limited to 5 chores. Upgrade to add more.' }
+    if ((count ?? 0) >= 3) {
+      return { data: null, error: 'Free plan is limited to 3 chores. Upgrade to add more.' }
     }
   }
 

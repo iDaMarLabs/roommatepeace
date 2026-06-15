@@ -12,14 +12,6 @@ const DEFAULT_RULES: { title: string; description: string }[] = [
     description: 'Wash dishes and wipe down surfaces within 24 hours of cooking.',
   },
   {
-    title: 'Overnight guests',
-    description: 'Give roommates at least 24 hours notice before having an overnight guest.',
-  },
-  {
-    title: 'No smoking indoors',
-    description: 'Smoking of any kind is not permitted inside the home.',
-  },
-  {
     title: 'Keep common areas clean',
     description: 'Living room, kitchen, and shared bathrooms should be kept reasonably tidy at all times.',
   },
@@ -41,8 +33,24 @@ export async function createRule(
   householdId: string,
   title: string,
   description: string | null
-): Promise<HouseRule | null> {
+): Promise<{ data: HouseRule | null; error?: string }> {
   const supabase = await createClient()
+
+  const { data: household } = await supabase
+    .from('households')
+    .select('plan_tier')
+    .eq('id', householdId)
+    .single()
+
+  if (household?.plan_tier === 'free') {
+    const { count } = await supabase
+      .from('house_rules')
+      .select('id', { count: 'exact', head: true })
+      .eq('household_id', householdId)
+    if ((count ?? 0) >= 3) {
+      return { data: null, error: 'Free plan is limited to 3 rules. Upgrade to add more.' }
+    }
+  }
 
   const { data, error } = await supabase
     .from('house_rules')
@@ -50,8 +58,8 @@ export async function createRule(
     .select()
     .single()
 
-  if (error || !data) return null
-  return data as HouseRule
+  if (error || !data) return { data: null }
+  return { data: data as HouseRule }
 }
 
 export async function toggleRule(ruleId: string, active: boolean): Promise<boolean> {
