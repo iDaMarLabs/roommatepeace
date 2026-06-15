@@ -84,7 +84,7 @@ export default async function LandingPage({
             Sign in
           </Link>
         </div>
-        <p className="text-stone-400 text-sm mt-6">Free plan: 2 roommates, 5 chores, 3 bills. No credit card required.</p>
+        <p className="text-stone-400 text-sm mt-6">Free plan: 2 roommates, 3 bills, 3 chores, 3 rules. No credit card required.</p>
       </main>
 
       {/* Features */}
