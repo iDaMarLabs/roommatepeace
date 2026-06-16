@@ -120,7 +120,7 @@ export default function PlanSection({
             onClick={() => handleUpgrade(monthlyPriceId, 'monthly')}
             disabled={!!loading}
           >
-            {loading === 'monthly' ? 'Redirecting...' : 'Upgrade — $7.99/mo'}
+            {loading === 'monthly' ? 'Redirecting...' : 'Upgrade — $7.99 USD/mo'}
           </Button>
           <Button
             variant="ghost"
@@ -128,7 +128,7 @@ export default function PlanSection({
             onClick={() => handleUpgrade(yearlyPriceId, 'yearly')}
             disabled={!!loading}
           >
-            {loading === 'yearly' ? 'Redirecting...' : 'Upgrade — $59.99/yr'}
+            {loading === 'yearly' ? 'Redirecting...' : 'Upgrade — $59.99 USD/yr'}
           </Button>
         </div>
       ) : (

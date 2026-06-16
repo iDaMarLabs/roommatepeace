@@ -1,6 +1,6 @@
 # Roommate Peace — What Is and Is Not Built
 
-Updated 2026-06-07.
+Updated 2026-06-14.
 
 ## Built and Working
 
@@ -20,10 +20,12 @@ Updated 2026-06-07.
 - Logo on auth pages (login, signup, forgot/reset password) links to `/`
 
 ### Invite Flow
-- `/invite/[code]` — shows household name, QR code, join button
-- Unauthenticated: links to `/signup?invite={code}` / `/login?invite={code}`
-- Authenticated users are auto-joined and redirected to dashboard — no extra button step
+- `/invite/[code]` — two distinct screens based on auth state
+  - Unauthenticated: shows household name, QR code, links to `/signup?invite={code}` / `/login?invite={code}`
+  - Authenticated: shows acknowledgement screen with unpaid bill count warning before join
 - `joinHousehold` enforces free-plan 2-member limit at join time
+- After joining, `recalculateSharesForNewMember` splits all unpaid bills to include the new member
+- If any member already paid before the new member joined, in-app notifications are created for them and the owner
 - `regenerateInviteCode` invalidates old link by replacing UUID
 
 ### Household Creation
@@ -39,9 +41,16 @@ Updated 2026-06-07.
 ### Dashboard
 - Household name with inline Premium badge (if applicable)
 - 4 stat cards (you owe, unpaid bills, overdue chores, chores need pickup) — each clickable to the relevant section
+- `NotificationBanner` — renders dismissible amber banners from `household_notifications`; dismiss is optimistic (client state) + persisted via `dismissNotificationAction`
 - `InviteSection` — copyable invite link, QR code, regenerate button
 - `PlanSection` — shows current plan (Free/Premium), upgrade buttons (owner only), "Manage billing" link for premium owners
 - `?upgraded=true` banner after successful checkout
+
+### In-App Notifications
+- `household_notifications` table with RLS
+- `notifications.service.ts` — `createNotification` (admin), `getNotificationsForUser`, `dismissNotification`
+- `NotificationBanner` component — amber dismissible banners, client-optimistic dismiss
+- Currently triggered by `recalculateSharesForNewMember` when a paid member is retroactively credited
 
 ### Stripe Paywall
 - `POST /api/checkout` — creates Stripe Checkout Session (hosted page), validates price against allowlist, owner-only
@@ -68,8 +77,10 @@ Updated 2026-06-07.
 - Add bill: title, amount, due date — equal split across current members
 - Edit existing bill: title, amount, due date — recalculates equal shares for all members
 - Delete bill
-- Mark your share paid
+- Mark your share paid (with optional payment note stored in `bill_shares.payment_note`)
 - Bills with `$0` show "Needs amount" indicator
+- Recurring bills: when all shares are paid on a recurring bill, a new bill is auto-created for the next month
+- New member joining recalculates unpaid bill shares to include them
 - Free plan: max 3 bills enforced at create
 
 ### House Rules

@@ -52,7 +52,7 @@
 
 **Roommate Peace** is a conflict-reduction app for roommates. Not a home organizer, not a task manager. Positioning: "Stop arguing about chores and bills." The wedge is visible accountability and explicit agreements.
 
-## Real Stack (as of 2026-06-07)
+## Real Stack (as of 2026-06-14)
 
 | Layer            | Tool / Version                          |
 |------------------|-----------------------------------------|
@@ -129,14 +129,58 @@ CRON_SECRET                     # bearer token for /api/cron/reminders
 3. Stripe Checkout is implemented. `lib/stripe/client.ts` uses `STRIPE_SECRET_KEY`. `services/subscription.service.ts` has `createCheckoutSession`, `createPortalSession`, `upgradeToPremium`, `downgradeToFree`. Webhook handler at `/api/webhooks/stripe` handles `checkout.session.completed`, `customer.subscription.updated`, `customer.subscription.deleted`.
 4. `src/proxy.ts` exports `proxy()` (not `middleware()`). Do not rename it.
 5. `user.service.ts` is an empty stub. `subscription.service.ts` is implemented — `upgradeToPremium`, `downgradeToFree`, `createCheckoutSession`, `createPortalSession` are all live.
-6. No comments unless the WHY is non-obvious. No emojis. No extra features beyond the task.
-7. No Prisma — all DB access is through the Supabase JS client.
+6. `notifications.service.ts` is implemented — `createNotification`, `getNotificationsForUser`, `dismissNotification`. `createNotification` uses `createAdminClient()` because it runs before the new member has household membership (pre-join context). Any system-level write to `bill_shares` or any read that runs before a user has membership must also use `createAdminClient()`.
+7. No comments unless the WHY is non-obvious. No emojis. No extra features beyond the task.
+8. No Prisma — all DB access is through the Supabase JS client.
+
+## Next.js 16 App Router Rules (from node_modules/next/dist/docs)
+
+These are confirmed from the installed Next.js 16 docs. Violating them breaks Turbopack compilation silently or with cryptic errors.
+
+### Root Layout (`src/app/layout.tsx`)
+- Structure is exactly `<html> → <body> → {children}</body></html>`. Nothing else at the top level.
+- **Never add a manual `<head>` element.** Next.js manages `<head>` automatically. Adding one conflicts with Turbopack and produces `adapterFn is not a function` / 404 on all routes.
+- Use `export const metadata = {...}` for `<title>`, `<meta>`, `<link rel="canonical">` etc. — not raw HTML tags.
+- Global CSS belongs in `src/app/globals.css` imported at the top of layout.tsx — not in inline `<style>` tags.
+- `Script` from `next/script` must live inside `<body>` (or between `</body>` and `</html>` per docs — both work). Never in `<head>`.
+
+### Script Component (`next/script`)
+- Inline scripts: use `dangerouslySetInnerHTML={{ __html: '...' }}` — safer with Turbopack than children template literals.
+- Always include an `id` prop on inline scripts so Next.js can deduplicate them.
+- `strategy="afterInteractive"` is the default and correct choice for non-critical third-party scripts (analytics, translation widgets).
+- `onLoad` / `onReady` / `onError` only work in `'use client'` components — not in Server Components.
+
+### Server vs Client Components
+- Server Components are the default. Add `'use client'` only when the component uses hooks (`useState`, `useEffect`, `useRouter`, etc.) or browser-only APIs (`localStorage`, `document`, `window`).
+- Importing a `'use client'` component from a Server Component is valid — Next.js handles the boundary automatically.
+- `params` and `searchParams` are **Promises** in Next.js 16 — always `await` them: `const { slug } = await params`.
+
+### Proxy (Middleware)
+- Next.js 16 renamed `middleware.ts` → `proxy.ts`. This project uses `src/proxy.ts`. Do not create a `middleware.ts`.
+- Proxy is for fast auth checks and redirects only — not for slow DB queries or session management.
+
+### When in doubt
+- Read `node_modules/next/dist/docs/01-app/` before writing any Next.js-specific code. The installed version is 16.2.4 and differs from training data.
+
+## RLS Rule Learned
+
+Use `createAdminClient()` (not `createClient()`) for:
+- Any operation that executes before the acting user has household membership (e.g., pre-join invite reads, post-join bill recalculation)
+- Any system-level write to `bill_shares` triggered by a service (not the user's own request)
+- Notification creation (`createNotification`) — always admin, because the recipient may not be the acting user
 
 ## Type Gaps to Know
 
-`src/types/index.ts` `Household` is **missing** `invite_code`, `stripe_customer_id`, and `stripe_subscription_id`. The DB has all three columns. Services and components that need `invite_code` must cast or extend the type.
+`src/types/index.ts` `Household` now includes `invite_code`, `stripe_customer_id`, and `stripe_subscription_id` — type matches DB. No cast needed.
 
-`DepartureBillPayment` now has `payment_note?: string | null`. The DB column must exist — run: `ALTER TABLE departure_bill_payments ADD COLUMN IF NOT EXISTS payment_note text;`
+`BillShare` now has `payment_note: string | null` in the type and DB column.
+
+`Bill` now has `recurring: boolean` in the type and DB column. Migration if missing:
+```sql
+ALTER TABLE bills ADD COLUMN IF NOT EXISTS recurring boolean NOT NULL DEFAULT false;
+ALTER TABLE bill_shares ADD COLUMN IF NOT EXISTS payment_note text;
+ALTER TABLE departure_bill_payments ADD COLUMN IF NOT EXISTS payment_note text;
+```
 
 ## Full Context
 

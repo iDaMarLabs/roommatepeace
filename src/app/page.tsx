@@ -1,8 +1,10 @@
 import Link from "next/link";
+import { Fragment } from "react";
 import { redirect } from "next/navigation";
 import { Home } from "lucide-react";
 import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
+import LanguageSwitcher from "@/components/LanguageSwitcher";
 
 export default async function LandingPage({
   searchParams,
@@ -47,6 +49,7 @@ export default async function LandingPage({
           <span className="font-serif font-bold text-stone-900 text-lg">Roommate Peace</span>
         </div>
         <div className="flex items-center gap-3">
+          <LanguageSwitcher />
           <Link
             href="/login"
             className="text-sm text-stone-600 hover:text-stone-900 font-medium"
@@ -74,13 +77,13 @@ export default async function LandingPage({
           <p className="text-stone-500 text-sm font-semibold self-start">Free Plan for a Limited Time:</p>
           <div className="flex items-center gap-5">
             {[['2','Roommates'],['3','Bills'],['3','Chores'],['3','Rules']].map(([num, label], i, arr) => (
-              <>
-                <div key={label} className="flex items-baseline gap-1.5">
+              <Fragment key={label}>
+                <div className="flex items-baseline gap-1.5">
                   <span className="font-bold text-stone-900 text-2xl leading-none">{num}</span>
                   <span className="text-stone-500 text-sm">{label}</span>
                 </div>
                 {i < arr.length - 1 && <div className="w-px h-5 bg-stone-200" />}
-              </>
+              </Fragment>
             ))}
           </div>
           <p className="text-stone-400 text-sm">No credit card required.</p>
@@ -117,7 +120,7 @@ export default async function LandingPage({
         <div className="grid sm:grid-cols-2 gap-6 max-w-2xl mx-auto">
           <div className="bg-white rounded-2xl border border-stone-200 p-6 shadow-sm flex flex-col">
             <p className="text-sm font-semibold text-stone-500 mb-1">Free Plan for a Limited Time</p>
-            <p className="text-3xl font-bold text-stone-900 mb-1">$0</p>
+            <p className="text-3xl font-bold text-stone-900 mb-1">$0 USD</p>
             <p className="text-stone-400 text-sm mb-6">No credit card required</p>
             <ul className="space-y-2 text-sm text-stone-600 mb-8 flex-1">
               <li>2 roommates</li>
@@ -136,10 +139,10 @@ export default async function LandingPage({
           <div className="bg-emerald-500 rounded-2xl p-6 shadow-sm flex flex-col">
             <p className="text-sm font-semibold text-emerald-100 mb-1">Premium</p>
             <div className="flex items-baseline gap-1 mb-1">
-              <p className="text-3xl font-bold text-white">$7.99</p>
+              <p className="text-3xl font-bold text-white">$7.99 USD</p>
               <p className="text-emerald-200 text-sm">/mo</p>
             </div>
-            <p className="text-emerald-200 text-sm mb-6">or $59.99/year — save 37%</p>
+            <p className="text-emerald-200 text-sm mb-6">or $59.99 USD/year — save 37%</p>
             <ul className="space-y-2 text-sm text-emerald-50 mb-8 flex-1">
               <li>Unlimited roommates</li>
               <li>Unlimited bills</li>
@@ -151,13 +154,13 @@ export default async function LandingPage({
                 href="/signup?plan=monthly"
                 className="block text-center bg-white hover:bg-stone-50 text-emerald-700 font-semibold px-4 py-2.5 rounded-lg transition-colors text-sm"
               >
-                Buy monthly — $7.99/mo
+                Buy monthly — $7.99 USD/mo
               </Link>
               <Link
                 href="/signup?plan=yearly"
                 className="block text-center bg-emerald-600 hover:bg-emerald-700 text-white font-medium px-4 py-2.5 rounded-lg transition-colors text-sm"
               >
-                Buy yearly — $59.99/yr
+                Buy yearly — $59.99 USD/yr
               </Link>
             </div>
           </div>

@@ -52,8 +52,8 @@ function SetupForm() {
       {plan && (
         <div className="mb-4 p-3 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-sm font-medium">
           {plan === 'yearly'
-            ? "Premium yearly — $59.99/yr. You'll be redirected to checkout after creating your household."
-            : "Premium monthly — $7.99/mo. You'll be redirected to checkout after creating your household."}
+            ? "Premium yearly — $59.99 USD/yr. You'll be redirected to checkout after creating your household."
+            : "Premium monthly — $7.99 USD/mo. You'll be redirected to checkout after creating your household."}
         </div>
       )}
       <div className="bg-white rounded-2xl shadow-sm border border-stone-200 p-8">

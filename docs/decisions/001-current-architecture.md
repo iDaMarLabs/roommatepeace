@@ -146,6 +146,49 @@ Captured from actual code on 2026-05-18. These are decisions already made and in
 
 ---
 
+## 13. Admin Client Required for Pre-Join and Cross-User Writes
+
+**Decision:** Any service operation that (a) executes before the acting user has membership in the target household, or (b) writes to another user's rows, must use `createAdminClient()` — not `createClient()`.
+
+**Why:** Supabase RLS evaluates `auth.uid()` against row ownership at query time. If a new member is mid-join (member row not yet inserted), or if a notification is being created for a different user, the server client will either return no rows or fail the insert. The admin client bypasses RLS entirely for these cross-boundary operations.
+
+**Consequences:**
+- `createNotification` always uses admin — it targets another user (`recipient_user_id`)
+- `recalculateSharesForNewMember` uses admin — it reads and writes `bill_shares` rows for all members, triggered at join time before membership row is committed
+- `getHouseholdByInviteCode` uses admin — must work for unauthenticated callers
+- `executeLeave` in `household.service.ts` uses admin — clears chore assignments and bill shares for a user who is being removed
+- `getUnpaidBillCount` on the invite page uses admin — the viewing user is not yet a member
+
+---
+
+## 14. Invite Page Acknowledgement Screen for Authenticated Users
+
+**Decision:** Authenticated users visiting `/invite/[code]` see an acknowledgement screen (with unpaid bill warnings) before joining, instead of being auto-joined immediately.
+
+**Why:** Auto-joining without context caused confusion when existing unpaid bills existed. The acknowledgement screen shows the number of unpaid bills and explains that the new member's share will be recalculated.
+
+**Consequences:**
+- `/invite/[code]/page.tsx` has two distinct render branches based on `supabase.auth.getUser()`
+- The unauthenticated branch shows household name, QR code, and login/signup links
+- The authenticated branch calls `getUnpaidBillCount` (admin client) and renders `JoinButton`
+- `JoinButton` is a Client Component that calls `joinHouseholdAction` on click
+
+---
+
+## 15. Bill Share Recalculation on Member Join
+
+**Decision:** When a new member joins, all unpaid bills are retroactively split to include them via `recalculateSharesForNewMember`.
+
+**Why:** Without recalculation, a new member would owe $0 on bills that existed before they joined — existing members would carry an unfair burden.
+
+**Consequences:**
+- Only unpaid shares are recalculated; paid shares are left intact
+- If a member already paid (fully) and the new split reduces what they owed, a credit notification is created for them and the owner via `createNotification`
+- All of this runs synchronously inside `joinHousehold` after the member insert — no queue
+- Uses admin client throughout because the new member's RLS session isn't yet active when the operation begins
+
+---
+
 ## 10. Cut Features (Do Not Revisit Without Strong Reason)
 
 | Feature | Decision |

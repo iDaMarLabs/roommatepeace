@@ -1,6 +1,6 @@
 # Roommate Peace — Routing & File Context (Layer 1)
 
-Generated from actual folder structure on 2026-06-07.
+Generated from actual folder structure on 2026-06-14.
 
 ## Route Map
 
@@ -19,7 +19,7 @@ Generated from actual folder structure on 2026-06-07.
 | `/bills`                   | `src/app/(dashboard)/bills/page.tsx`                   | Server Component  | Yes |
 | `/rules`                   | `src/app/(dashboard)/rules/page.tsx`                   | Server Component  | Yes |
 | `/settings`                | `src/app/(dashboard)/settings/page.tsx`                | Server Component  | Yes |
-| `/invite/[code]`           | `src/app/invite/[code]/page.tsx`                       | Server Component  | No (shows join UI) |
+| `/invite/[code]`           | `src/app/invite/[code]/page.tsx`                       | Server Component  | No (shows join UI; authed users see acknowledgement screen) |
 | `POST /api/households`     | `src/app/api/households/route.ts`                      | Route Handler     | Yes (via service) |
 | `GET  /api/households`     | `src/app/api/households/route.ts`                      | Route Handler     | Yes |
 | `POST /api/chores`         | `src/app/api/chores/route.ts`                          | Route Handler     | Yes |
@@ -45,7 +45,7 @@ Generated from actual folder structure on 2026-06-07.
 | `src/app/(dashboard)/chores/actions.ts`         | `addChoreAction`, `pickUpChoreAction`, `completeChoreAction` |
 | `src/app/(dashboard)/bills/actions.ts`          | `addBillAction`, `editBillAction`, `deleteBillAction`, `markSharePaidAction` |
 | `src/app/(dashboard)/rules/actions.ts`          | `addRuleAction`, `toggleRuleAction`, `deleteRuleAction` |
-| `src/app/(dashboard)/dashboard/actions.ts`      | `regenerateInviteCodeAction`                          |
+| `src/app/(dashboard)/dashboard/actions.ts`      | `regenerateInviteCodeAction`, `dismissNotificationAction`, `acknowledgeLeaveAction` |
 | `src/app/(dashboard)/settings/actions.ts`       | `requestLeaveAction`, `cancelLeaveAction`, `renameHouseholdAction` |
 | `src/app/invite/[code]/actions.ts`              | `joinHouseholdAction`                                 |
 
@@ -65,8 +65,8 @@ src/
     (dashboard)/
       layout.tsx                    ← NavBar + auth guard
       dashboard/
-        page.tsx                    ← stat cards (clickable), premium badge, invite section
-        actions.ts                  ← regenerateInviteCodeAction
+        page.tsx                    ← stat cards (clickable), NotificationBanner, premium badge, invite section
+        actions.ts                  ← regenerateInviteCodeAction, dismissNotificationAction, acknowledgeLeaveAction
       setup/page.tsx                ← household creation form
       chores/
         page.tsx
@@ -90,7 +90,7 @@ src/
       webhooks/stripe/route.ts      ← handles checkout.session.completed, subscription.updated/deleted
     auth/callback/route.ts          ← Supabase email confirm + password reset redirect; reads ?next=
     invite/[code]/
-      page.tsx
+      page.tsx                      ← unauthenticated: show join links; authenticated: show acknowledgement screen with bill warning
       actions.ts
       JoinButton.tsx                ← client component
     layout.tsx                      ← root layout, metadata
@@ -105,6 +105,7 @@ src/
       LeaveHouseholdSection.tsx     ← client component; leave/departure request flow + payment notes
       DepartureRequestBanner.tsx    ← client component; shows pending departure banner
       RenameHouseholdSection.tsx    ← client component; rename household inline
+      NotificationBanner.tsx        ← client component; renders dismissible amber banners from household_notifications
     rules/RulesBoard.tsx            ← client component
     ui/
       NavBar.tsx                    ← client component; logout → /
@@ -119,15 +120,16 @@ src/
       server.ts                     ← createServerClient (cookies)
     utils.ts                        ← cn() helper
   services/
-    bill.service.ts
+    bill.service.ts                 ← getBills, createBill, updateBill, deleteBill, markSharePaid, getUnpaidBillCount, recalculateSharesForNewMember, seedDefaultBills
     chore.service.ts
     email.service.ts                ← Resend HTML email builder + sender
-    household.service.ts
+    household.service.ts            ← getUserHousehold, getHouseholdMembers, createHousehold, joinHousehold (calls recalculateSharesForNewMember), requestLeave, cancelLeave, acknowledgeLeave, renameHousehold, regenerateInviteCode
+    notifications.service.ts        ← createNotification (admin), getNotificationsForUser, dismissNotification
     reminder.service.ts             ← daily reminder aggregator
     rule.service.ts
     subscription.service.ts         ← upgradeToPremium, downgradeToFree, createCheckoutSession, createPortalSession
     user.service.ts                 ← STUB
-  types/index.ts                    ← shared TypeScript interfaces
+  types/index.ts                    ← shared TypeScript interfaces (Household now includes invite_code, stripe_customer_id, stripe_subscription_id; BillShare includes payment_note; Bill includes recurring)
   proxy.ts                          ← Next.js 16 auth session guard
 ```
 
@@ -149,8 +151,14 @@ proxy.ts → guards /dashboard/* and /setup — redirects to /login if no user
 ```
 Dashboard → InviteSection shows /invite/{uuid} link + QR code
 /invite/[code] → getHouseholdByInviteCode (admin client, no RLS)
-  → if user authed: auto-joined via joinHouseholdAction → redirect /dashboard
-  → if not authed: links to /signup?invite={code} or /login?invite={code}
+  → if not authed: shows household name, QR code, links to /signup?invite={code} or /login?invite={code}
+  → if authed: shows acknowledgement screen with unpaid bill count warning + JoinButton
+    → JoinButton calls joinHouseholdAction → joinHousehold service
+      → inserts member row
+      → calls recalculateSharesForNewMember (admin client)
+        → splits unpaid bill shares equally across all members including new joiner
+        → creates household_notifications for previously-paid members (credit notice) and household owner
+      → redirect /dashboard
   note: invite query param on signup/login is NOT currently consumed — manual join after auth
 ```
 
