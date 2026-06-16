@@ -19,15 +19,13 @@ function getCurrentLang(): string {
 
 function setLangCookie(code: string) {
   const host = window.location.hostname
-  // Clear existing on both path variations
   const expire = 'expires=Thu, 01 Jan 1970 00:00:00 GMT'
   document.cookie = `googtrans=; path=/; ${expire}`
   document.cookie = `googtrans=; path=/; domain=.${host}; ${expire}`
-  if (code !== '') {
-    const val = `/en/${code}`
-    document.cookie = `googtrans=${val}; path=/`
-    document.cookie = `googtrans=${val}; path=/; domain=.${host}`
-  }
+  // '/en/en' explicitly restores English — deleting the cookie leaves GT in its last state
+  const val = code === '' ? '/en/en' : `/en/${code}`
+  document.cookie = `googtrans=${val}; path=/`
+  document.cookie = `googtrans=${val}; path=/; domain=.${host}`
 }
 
 export default function LanguageSwitcher() {
