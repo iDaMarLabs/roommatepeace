@@ -1,12 +1,17 @@
 'use server'
 
 import { regenerateInviteCode, acknowledgeLeave } from '@/services/household.service'
+import { dismissNotification } from '@/services/notifications.service'
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
 
 export async function regenerateInviteCodeAction(householdId: string) {
   await regenerateInviteCode(householdId)
   revalidatePath('/dashboard')
+}
+
+export async function dismissNotificationAction(notificationId: string): Promise<void> {
+  await dismissNotification(notificationId)
 }
 
 export async function acknowledgeLeaveAction(departureRequestId: string): Promise<{ error?: string }> {

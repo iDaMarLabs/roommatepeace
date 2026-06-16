@@ -1,8 +1,9 @@
-import { getHouseholdByInviteCode, joinHousehold } from '@/services/household.service'
+import { getHouseholdByInviteCode } from '@/services/household.service'
+import { getUnpaidBillCount } from '@/services/bill.service'
 import { createClient } from '@/lib/supabase/server'
 import Link from 'next/link'
-import { redirect } from 'next/navigation'
 import QRCodeDisplay from '@/components/ui/QRCodeDisplay'
+import JoinButton from './JoinButton'
 
 export default async function InvitePage({
   params,
@@ -29,8 +30,40 @@ export default async function InvitePage({
   } = await supabase.auth.getUser()
 
   if (user) {
-    await joinHousehold(code)
-    redirect('/dashboard')
+    const unpaidBillCount = await getUnpaidBillCount(household.id)
+
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-stone-50 px-4">
+        <div className="w-full max-w-md">
+          <div className="text-center mb-8">
+            <h1 className="text-2xl font-bold text-stone-900">Roommate Peace</h1>
+            <p className="text-stone-500 text-sm mt-1">Shared home accountability</p>
+          </div>
+
+          <div className="bg-white border border-stone-200 rounded-2xl p-8">
+            <h2 className="text-xl font-semibold text-stone-900 mb-1">
+              Join {household.name}
+            </h2>
+            <p className="text-stone-500 text-sm mb-6">
+              Review what you are joining before accepting.
+            </p>
+
+            {unpaidBillCount > 0 && (
+              <div className="mb-6 p-4 rounded-xl bg-amber-50 border border-amber-200">
+                <p className="text-sm font-medium text-amber-900 mb-1">
+                  {unpaidBillCount} unpaid {unpaidBillCount === 1 ? 'bill' : 'bills'} already exist
+                </p>
+                <p className="text-xs text-amber-700">
+                  Your share of these bills will be recalculated to include you. Members who already paid may be owed a credit adjustment.
+                </p>
+              </div>
+            )}
+
+            <JoinButton inviteCode={code} />
+          </div>
+        </div>
+      </div>
+    )
   }
 
   return (

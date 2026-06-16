@@ -2,6 +2,7 @@
 
 import { useState, useTransition } from 'react'
 import { BookOpen, Trash2 } from 'lucide-react'
+import Link from 'next/link'
 import { addRuleAction, acknowledgeRuleAction, toggleRuleAction, deleteRuleAction } from '@/app/(dashboard)/rules/actions'
 import type { HouseRule, HouseholdMember, RuleAcknowledgement } from '@/types'
 import { Button } from '@/components/ui/Button'
@@ -17,14 +18,20 @@ interface Props {
 
 export default function RulesBoard({ householdId, currentUserId, rules, members, acknowledgements }: Props) {
   const [showForm, setShowForm] = useState(false)
+  const [formError, setFormError] = useState('')
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null)
   const [deleteError, setDeleteError] = useState('')
   const [isPending, startTransition] = useTransition()
 
   function handleAdd(formData: FormData) {
+    setFormError('')
     startTransition(async () => {
-      await addRuleAction(formData)
-      setShowForm(false)
+      const result = await addRuleAction(formData)
+      if (result?.error) {
+        setFormError(result.error)
+      } else {
+        setShowForm(false)
+      }
     })
   }
 
@@ -63,6 +70,17 @@ export default function RulesBoard({ householdId, currentUserId, rules, members,
       {showForm && (
         <form action={handleAdd} className="bg-white border border-stone-200 rounded-2xl p-6 mb-6 shadow-sm">
           <h2 className="font-semibold text-stone-900 mb-4">New rule</h2>
+          {formError && (
+            <div className="mb-4 p-3 rounded-lg bg-red-50 border border-red-200 text-red-700 text-sm">
+              {formError.includes('Upgrade') ? (
+                <>
+                  {formError.split('Upgrade')[0]}
+                  <Link href="/dashboard" className="font-semibold underline">Upgrade</Link>
+                  {formError.split('Upgrade')[1]}
+                </>
+              ) : formError}
+            </div>
+          )}
           <input type="hidden" name="householdId" value={householdId} />
           <div className="space-y-4">
             <Input

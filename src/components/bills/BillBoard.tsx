@@ -2,6 +2,7 @@
 
 import { useState, useTransition } from 'react'
 import { Pencil, Trash2, Receipt, RefreshCw } from 'lucide-react'
+import Link from 'next/link'
 import { addBillAction, editBillAction, markSharePaidAction, deleteBillAction } from '@/app/(dashboard)/bills/actions'
 import type { BillWithShares } from '@/services/bill.service'
 import { Button } from '@/components/ui/Button'
@@ -96,7 +97,13 @@ export default function BillBoard({ householdId, currentUserId, bills }: Props) 
           <h2 className="font-semibold text-stone-900 mb-4">New bill</h2>
           {formError && (
             <div className="mb-4 p-3 rounded-lg bg-red-50 border border-red-200 text-red-700 text-sm">
-              {formError}
+              {formError.includes('Upgrade') ? (
+                <>
+                  {formError.split('Upgrade')[0]}
+                  <Link href="/dashboard" className="font-semibold underline">Upgrade</Link>
+                  {formError.split('Upgrade')[1]}
+                </>
+              ) : formError}
             </div>
           )}
           <input type="hidden" name="householdId" value={householdId} />

@@ -18,11 +18,12 @@
 ## Primary Focus: Roommate Peace SaaS
 
 **Current State**:
-- Private/dev-only (not live)
-- ~50% complete
-- MVP pricing: $7/mo or $59/year
+- **Live at www.roommatepeace.com** (deployed on Vercel, main branch)
+- ~95% complete — all MVP features shipped and working in production
+- All env vars wired: Supabase, Stripe (webhook verified), Resend, Cron
+- MVP pricing: $7.99/mo or $59.99/year (test mode; live mode pending)
 - Target: 1,400+ active users → $10k/mo
-- Tech: Next.js 16.2.4, React 19.2.4, Supabase, Stripe (stubbed), Resend, Vercel, Tailwind v4
+- Tech: Next.js 16.2.4, React 19.2.4, Supabase, Stripe (implemented), Resend, Vercel, Tailwind v4
 
 **Secondary exploration**: askhowmany.com (learning app, not Google Ads compliant—deprioritize)
 
@@ -51,14 +52,14 @@
 
 **Roommate Peace** is a conflict-reduction app for roommates. Not a home organizer, not a task manager. Positioning: "Stop arguing about chores and bills." The wedge is visible accountability and explicit agreements.
 
-## Real Stack (as of 2026-05-18)
+## Real Stack (as of 2026-06-07)
 
 | Layer            | Tool / Version                          |
 |------------------|-----------------------------------------|
 | Framework        | Next.js **16.2.4** (App Router)         |
 | Runtime          | React **19.2.4**                        |
 | Database + Auth  | Supabase (Postgres + RLS + Auth)        |
-| Payments         | Stripe — **stub only, not implemented** |
+| Payments         | Stripe — **implemented** (checkout, portal, webhooks) |
 | Email            | Resend **^6.12.3**                      |
 | Deploy target    | Vercel                                  |
 | Styling          | Tailwind CSS **v4** (postcss plugin)    |
@@ -104,6 +105,7 @@ STRIPE_PRICE_YEARLY                 # test: price_1TYZ8WHimit9xPcf0IVv1g8z
 
 # Resend
 RESEND_API_KEY
+RESEND_FROM_EMAIL                # e.g. reminders@roommatepeace.com (verified domain)
 
 # Cron auth
 CRON_SECRET                     # bearer token for /api/cron/reminders
@@ -126,13 +128,15 @@ CRON_SECRET                     # bearer token for /api/cron/reminders
 2. `SUPABASE_SERVICE_ROLE_KEY` is used only in `lib/supabase/admin.ts`. Never import `createAdminClient` from a client component or expose it to the browser.
 3. Stripe Checkout is implemented. `lib/stripe/client.ts` uses `STRIPE_SECRET_KEY`. `services/subscription.service.ts` has `createCheckoutSession`, `createPortalSession`, `upgradeToPremium`, `downgradeToFree`. Webhook handler at `/api/webhooks/stripe` handles `checkout.session.completed`, `customer.subscription.updated`, `customer.subscription.deleted`.
 4. `src/proxy.ts` exports `proxy()` (not `middleware()`). Do not rename it.
-5. `user.service.ts` and `subscription.service.ts` are empty stubs. Do not treat them as implemented.
+5. `user.service.ts` is an empty stub. `subscription.service.ts` is implemented — `upgradeToPremium`, `downgradeToFree`, `createCheckoutSession`, `createPortalSession` are all live.
 6. No comments unless the WHY is non-obvious. No emojis. No extra features beyond the task.
 7. No Prisma — all DB access is through the Supabase JS client.
 
 ## Type Gaps to Know
 
-`src/types/index.ts` `Household` includes `invite_code`, `stripe_customer_id`, and `stripe_subscription_id`. The actual Supabase `households` table must have all three columns. Run the migration in `docs/SCHEMA.md` if it hasn't been applied yet.
+`src/types/index.ts` `Household` is **missing** `invite_code`, `stripe_customer_id`, and `stripe_subscription_id`. The DB has all three columns. Services and components that need `invite_code` must cast or extend the type.
+
+`DepartureBillPayment` now has `payment_note?: string | null`. The DB column must exist — run: `ALTER TABLE departure_bill_payments ADD COLUMN IF NOT EXISTS payment_note text;`
 
 ## Full Context
 
