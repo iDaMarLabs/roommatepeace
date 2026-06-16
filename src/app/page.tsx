@@ -102,7 +102,7 @@ export default async function LandingPage({
       </main>
 
       {/* Features */}
-      <section className="px-6 pb-24 max-w-5xl mx-auto w-full">
+      <section className="px-6 pb-16 max-w-5xl mx-auto w-full">
         <div className="grid sm:grid-cols-3 gap-6">
           <div className="bg-white rounded-2xl border border-stone-200 p-6 shadow-sm">
             <h3 className="font-semibold text-stone-900 mb-2">Chore accountability</h3>
@@ -125,9 +125,62 @@ export default async function LandingPage({
         </div>
       </section>
 
+      {/* Pricing */}
+      <section className="px-6 pb-24 max-w-5xl mx-auto w-full">
+        <h2 className="text-2xl font-bold text-stone-900 text-center mb-8">Simple pricing</h2>
+        <div className="grid sm:grid-cols-2 gap-6 max-w-2xl mx-auto">
+          <div className="bg-white rounded-2xl border border-stone-200 p-6 shadow-sm flex flex-col">
+            <p className="text-sm font-semibold text-stone-500 mb-1">Free</p>
+            <p className="text-3xl font-bold text-stone-900 mb-1">$0</p>
+            <p className="text-stone-400 text-sm mb-6">No credit card required</p>
+            <ul className="space-y-2 text-sm text-stone-600 mb-8 flex-1">
+              <li>2 roommates</li>
+              <li>3 bills</li>
+              <li>3 chores</li>
+              <li>3 house rules</li>
+            </ul>
+            <Link
+              href="/signup"
+              className="block text-center border border-stone-200 bg-stone-50 hover:bg-stone-100 text-stone-700 font-medium px-4 py-2.5 rounded-lg transition-colors text-sm"
+            >
+              Get started free
+            </Link>
+          </div>
+
+          <div className="bg-emerald-500 rounded-2xl p-6 shadow-sm flex flex-col">
+            <p className="text-sm font-semibold text-emerald-100 mb-1">Premium</p>
+            <div className="flex items-baseline gap-1 mb-1">
+              <p className="text-3xl font-bold text-white">$7.99</p>
+              <p className="text-emerald-200 text-sm">/mo</p>
+            </div>
+            <p className="text-emerald-200 text-sm mb-6">or $59.99/year — save 37%</p>
+            <ul className="space-y-2 text-sm text-emerald-50 mb-8 flex-1">
+              <li>Unlimited roommates</li>
+              <li>Unlimited bills</li>
+              <li>Unlimited chores</li>
+              <li>Unlimited house rules</li>
+            </ul>
+            <div className="space-y-2">
+              <Link
+                href="/signup?plan=monthly"
+                className="block text-center bg-white hover:bg-stone-50 text-emerald-700 font-semibold px-4 py-2.5 rounded-lg transition-colors text-sm"
+              >
+                Buy monthly — $7.99/mo
+              </Link>
+              <Link
+                href="/signup?plan=yearly"
+                className="block text-center bg-emerald-600 hover:bg-emerald-700 text-white font-medium px-4 py-2.5 rounded-lg transition-colors text-sm"
+              >
+                Buy yearly — $59.99/yr
+              </Link>
+            </div>
+          </div>
+        </div>
+      </section>
+
       {/* Footer */}
       <footer className="border-t border-stone-200 px-6 py-6 text-center text-stone-400 text-sm">
-        © {new Date().getFullYear()} Roommate Peace · $7/mo or $59/year per household
+        © {new Date().getFullYear()} Roommate Peace
       </footer>
     </div>
   );

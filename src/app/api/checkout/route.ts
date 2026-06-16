@@ -3,6 +3,11 @@ import { createClient } from '@/lib/supabase/server'
 import { getUserHousehold } from '@/services/household.service'
 import { createCheckoutSession } from '@/services/subscription.service'
 
+const PLAN_TO_PRICE: Record<string, string | undefined> = {
+  monthly: process.env.STRIPE_PRICE_MONTHLY,
+  yearly: process.env.STRIPE_PRICE_YEARLY,
+}
+
 const VALID_PRICES = new Set([
   process.env.STRIPE_PRICE_MONTHLY,
   process.env.STRIPE_PRICE_YEARLY,
@@ -19,7 +24,11 @@ export async function POST(request: NextRequest) {
   }
 
   const body = await request.json().catch(() => null)
-  const priceId = typeof body?.priceId === 'string' ? body.priceId : ''
+
+  let priceId = typeof body?.priceId === 'string' ? body.priceId : ''
+  if (!priceId && typeof body?.plan === 'string') {
+    priceId = PLAN_TO_PRICE[body.plan] ?? ''
+  }
 
   if (!priceId || !VALID_PRICES.has(priceId)) {
     return NextResponse.json({ error: 'Invalid price' }, { status: 400 })

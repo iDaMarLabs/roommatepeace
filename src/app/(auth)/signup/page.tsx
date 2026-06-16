@@ -9,6 +9,7 @@ function SignupForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const invite = searchParams.get("invite");
+  const plan = searchParams.get("plan");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [name, setName] = useState("");
@@ -21,7 +22,11 @@ function SignupForm() {
 
     const supabase = createClient();
 
-    const nextPath = invite ? `/invite/${invite}` : "/dashboard";
+    const nextPath = invite
+      ? `/invite/${invite}`
+      : plan
+      ? `/setup?plan=${plan}`
+      : "/dashboard";
     const callbackUrl = `${window.location.origin}/auth/callback?next=${encodeURIComponent(nextPath)}`;
 
     const { error } = await supabase.auth.signUp({
@@ -52,6 +57,14 @@ function SignupForm() {
           Roommate Peace helps college roommates and shared households stay clear on chores, bills, and house agreements before small problems become big arguments. For less than the cost of one late-night food order, everyone gets visible accountability, fewer awkward reminders, and a calmer place to live.
         </p>
       </div>
+
+      {plan && (
+        <div className="mb-4 p-3 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-sm font-medium">
+          {plan === "yearly"
+            ? "Premium yearly selected — $59.99/yr. You'll be taken to checkout after setup."
+            : "Premium monthly selected — $7.99/mo. You'll be taken to checkout after setup."}
+        </div>
+      )}
 
       <div className="bg-white rounded-2xl shadow-sm border border-stone-200 p-8">
       <h2 className="text-xl font-semibold text-stone-900 mb-1">
@@ -119,7 +132,7 @@ function SignupForm() {
       <p className="text-center text-stone-500 text-sm mt-6">
         Already have an account?{" "}
         <Link
-          href={invite ? `/login?invite=${invite}` : "/login"}
+          href={invite ? `/login?invite=${invite}` : plan ? `/login?plan=${plan}` : "/login"}
           className="text-emerald-600 hover:underline font-medium"
         >
           Log in
