@@ -116,7 +116,7 @@ export default async function LandingPage({
         <h2 className="text-2xl font-bold text-stone-900 text-center mb-8">Simple pricing</h2>
         <div className="grid sm:grid-cols-2 gap-6 max-w-2xl mx-auto">
           <div className="bg-white rounded-2xl border border-stone-200 p-6 shadow-sm flex flex-col">
-            <p className="text-sm font-semibold text-stone-500 mb-1">Free</p>
+            <p className="text-sm font-semibold text-stone-500 mb-1">Free Plan for a Limited Time</p>
             <p className="text-3xl font-bold text-stone-900 mb-1">$0</p>
             <p className="text-stone-400 text-sm mb-6">No credit card required</p>
             <ul className="space-y-2 text-sm text-stone-600 mb-8 flex-1">

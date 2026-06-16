@@ -105,7 +105,7 @@ export default function PlanSection({
       <div className="flex items-center gap-2 mb-1">
         <h2 className="font-semibold text-stone-900">Plan</h2>
         <span className="text-xs font-medium px-2 py-0.5 bg-stone-100 text-stone-500 rounded-full">
-          Free
+          Free Plan for a Limited Time
         </span>
       </div>
       <p className="text-stone-600 text-sm mb-4">
