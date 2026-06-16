@@ -102,7 +102,7 @@ export async function joinHousehold(
   if (household.plan_tier === 'free' && (count ?? 0) >= 2) {
     return {
       success: false,
-      error: 'This household has reached the 2-member limit on the free plan',
+      error: 'This household has reached the 2-member limit on the Free Plan for a Limited Time',
     }
   }
 

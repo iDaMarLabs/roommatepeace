@@ -72,7 +72,7 @@ export async function createChore(
       .eq('household_id', householdId)
       .eq('active', true)
     if ((count ?? 0) >= 3) {
-      return { data: null, error: 'Free plan is limited to 3 chores. Upgrade to add more.' }
+      return { data: null, error: 'Free Plan for a Limited Time is limited to 3 chores. Upgrade to add more.' }
     }
   }
 

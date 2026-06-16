@@ -71,7 +71,7 @@ export default async function LandingPage({
           Roommate Peace helps shared households stay clear on chores, bills, and house agreements before small problems become big arguments.
         </p>
         <div className="mt-0 bg-white rounded-2xl border border-stone-200 px-6 py-4 shadow-sm inline-flex flex-col items-center gap-3">
-          <p className="text-stone-500 text-sm font-semibold self-start">Free plan:</p>
+          <p className="text-stone-500 text-sm font-semibold self-start">Free Plan for a Limited Time:</p>
           <div className="flex items-center gap-5">
             {[['2','Roommates'],['3','Bills'],['3','Chores'],['3','Rules']].map(([num, label], i, arr) => (
               <>
