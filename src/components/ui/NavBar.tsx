@@ -5,6 +5,7 @@ import { createClient } from '@/lib/supabase/client'
 import { Home, CheckSquare, Receipt, BookOpen, LogOut, Settings } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import type { HouseholdMember } from '@/types'
+import LanguageSwitcher from '@/components/LanguageSwitcher'
 
 const links = [
   { href: '/dashboard', label: 'Dashboard', icon: Home },
@@ -35,7 +36,7 @@ export default function NavBar({ userEmail, currentUserId, members }: NavBarProp
       <div className="max-w-4xl mx-auto px-4">
         {/* Title row */}
         <div className="flex items-center justify-between h-12">
-          <div className="w-10" />
+          <LanguageSwitcher />
           <Link
             href="/"
             className="flex flex-col items-center hover:text-emerald-600 transition-colors group"

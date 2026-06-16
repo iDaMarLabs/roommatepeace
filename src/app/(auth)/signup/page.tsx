@@ -61,8 +61,8 @@ function SignupForm() {
       {plan && (
         <div className="mb-4 p-3 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-sm font-medium">
           {plan === "yearly"
-            ? "Premium yearly selected — $59.99/yr. You'll be taken to checkout after setup."
-            : "Premium monthly selected — $7.99/mo. You'll be taken to checkout after setup."}
+            ? "Premium yearly selected — $59.99 USD/yr. You'll be taken to checkout after setup."
+            : "Premium monthly selected — $7.99 USD/mo. You'll be taken to checkout after setup."}
         </div>
       )}
 
