@@ -127,6 +127,10 @@ function SignupForm() {
         >
           {loading ? "Creating account..." : "Create account"}
         </button>
+
+        <p className="text-xs text-stone-400 text-center">
+          Accounts that don't join or create a household within 24 hours are automatically removed.
+        </p>
       </div>
 
       <p className="text-center text-stone-500 text-sm mt-6">

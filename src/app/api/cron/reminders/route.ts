@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server'
-import { markMissedChores, sendDailyReminders } from '@/services/reminder.service'
+import { markMissedChores, sendDailyReminders, deleteOrphanedAccounts } from '@/services/reminder.service'
 
 export const runtime = 'nodejs'
 export const maxDuration = 60
@@ -14,5 +14,6 @@ export async function GET(request: Request) {
 
   const missed = await markMissedChores()
   const result = await sendDailyReminders()
-  return NextResponse.json({ ok: true, missed, ...result })
+  const purged = await deleteOrphanedAccounts()
+  return NextResponse.json({ ok: true, missed, purged, ...result })
 }

@@ -36,6 +36,35 @@ export async function markMissedChores(): Promise<number> {
   return data?.length ?? 0
 }
 
+export async function deleteOrphanedAccounts(): Promise<number> {
+  const supabase = createAdminClient()
+  const cutoff = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString()
+
+  const { data, error } = await supabase.auth.admin.listUsers({ perPage: 1000 })
+  if (error || !data?.users) return 0
+
+  const oldUsers = data.users.filter(u => u.created_at < cutoff)
+  if (oldUsers.length === 0) return 0
+
+  const oldUserIds = oldUsers.map(u => u.id)
+
+  const { data: members } = await supabase
+    .from('household_members')
+    .select('user_id')
+    .in('user_id', oldUserIds)
+
+  const withHousehold = new Set((members ?? []).map(m => m.user_id))
+  const orphans = oldUsers.filter(u => !withHousehold.has(u.id))
+
+  let deleted = 0
+  for (const orphan of orphans) {
+    const { error: delError } = await supabase.auth.admin.deleteUser(orphan.id)
+    if (!delError) deleted++
+  }
+
+  return deleted
+}
+
 export async function sendDailyReminders(): Promise<{ sent: number; errors: number }> {
   const supabase = createAdminClient()
   const { todayStr, tomorrowStr } = todayAndTomorrow()
