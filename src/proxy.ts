@@ -29,15 +29,30 @@ export async function proxy(request: NextRequest) {
     data: { user },
   } = await supabase.auth.getUser()
 
+  const path = request.nextUrl.pathname
+
+  // Block verified-but-unconfirmed users from protected routes
+  if (user && !user.email_confirmed_at) {
+    if (
+      path.startsWith('/dashboard') ||
+      path.startsWith('/setup') ||
+      path.startsWith('/invite')
+    ) {
+      const url = request.nextUrl.clone()
+      url.pathname = '/signup/confirm'
+      return NextResponse.redirect(url)
+    }
+  }
+
   // Protect all dashboard routes — redirect unauthenticated users to login
-  if (!user && request.nextUrl.pathname.startsWith('/dashboard')) {
+  if (!user && path.startsWith('/dashboard')) {
     const url = request.nextUrl.clone()
     url.pathname = '/login'
     return NextResponse.redirect(url)
   }
 
   // Protect setup route as well
-  if (!user && request.nextUrl.pathname.startsWith('/setup')) {
+  if (!user && path.startsWith('/setup')) {
     const url = request.nextUrl.clone()
     url.pathname = '/login'
     return NextResponse.redirect(url)
