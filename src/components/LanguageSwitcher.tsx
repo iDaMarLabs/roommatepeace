@@ -20,12 +20,22 @@ function getCurrentLang(): string {
 function setLangCookie(code: string) {
   const host = window.location.hostname
   const expire = 'expires=Thu, 01 Jan 1970 00:00:00 GMT'
-  document.cookie = `googtrans=; path=/; ${expire}`
-  document.cookie = `googtrans=; path=/; domain=.${host}; ${expire}`
   // '/en/en' explicitly restores English — deleting the cookie leaves GT in its last state
   const val = code === '' ? '/en/en' : `/en/${code}`
+
+  // Google Translate may have set its cookie on the root domain (e.g. .roommatepeace.com)
+  // rather than the subdomain (.www.roommatepeace.com). Clear and set both to ensure
+  // the new value wins on reload, especially on the www production domain.
+  const parts = host.split('.')
+  const rootDomain = parts.length > 2 ? parts.slice(-2).join('.') : host
+
+  document.cookie = `googtrans=; path=/; ${expire}`
+  document.cookie = `googtrans=; path=/; domain=.${host}; ${expire}`
+  document.cookie = `googtrans=; path=/; domain=.${rootDomain}; ${expire}`
+
   document.cookie = `googtrans=${val}; path=/`
   document.cookie = `googtrans=${val}; path=/; domain=.${host}`
+  document.cookie = `googtrans=${val}; path=/; domain=.${rootDomain}`
 }
 
 export default function LanguageSwitcher() {
