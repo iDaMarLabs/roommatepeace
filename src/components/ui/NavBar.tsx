@@ -82,16 +82,20 @@ export default function NavBar({ userEmail, currentUserId, members }: NavBarProp
 
         {/* Members strip */}
         {members.length > 0 && (
-          <div className="flex items-center gap-3 py-2 border-t border-stone-100 overflow-x-auto">
-            <span className="text-xs text-stone-400 shrink-0">Household:</span>
+          <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5 py-2 border-t border-stone-100">
+            <span className="text-xs text-stone-400">Household:</span>
             {members.map((m) => {
               const isMe = m.user_id === currentUserId
-              const name = isMe
+              const rawName = isMe
                 ? 'You'
                 : (m.profile?.name ?? m.profile?.email?.split('@')[0] ?? 'Roommate')
-              const initial = name[0].toUpperCase()
+              const parts = rawName.trim().split(/\s+/)
+              const displayName = isMe || parts.length === 1
+                ? rawName
+                : `${parts[0]} ${parts[parts.length - 1][0].toUpperCase()}.`
+              const initial = rawName[0].toUpperCase()
               return (
-                <span key={m.id} className="flex items-center gap-1.5 shrink-0">
+                <span key={m.id} className="flex items-center gap-1.5">
                   <span
                     className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-semibold ${
                       isMe ? 'bg-emerald-100 text-emerald-700' : 'bg-stone-100 text-stone-600'
@@ -100,7 +104,7 @@ export default function NavBar({ userEmail, currentUserId, members }: NavBarProp
                     {initial}
                   </span>
                   <span className={`text-xs ${isMe ? 'text-emerald-700 font-medium' : 'text-stone-600'}`}>
-                    {name}
+                    {displayName}
                   </span>
                 </span>
               )
