@@ -154,13 +154,13 @@ export default async function LandingPage({
                 href="/signup?plan=monthly"
                 className="block text-center bg-white hover:bg-stone-50 text-emerald-700 font-semibold px-4 py-2.5 rounded-lg transition-colors text-sm"
               >
-                Buy monthly — $7.99 USD/mo
+                Get Roommate Peace - monthly — $7.99 USD/mo
               </Link>
               <Link
                 href="/signup?plan=yearly"
                 className="block text-center bg-emerald-600 hover:bg-emerald-700 text-white font-medium px-4 py-2.5 rounded-lg transition-colors text-sm"
               >
-                Buy yearly — $59.99 USD/yr
+                Get Roommate Peace - yearly — $59.99 USD/yr
               </Link>
             </div>
           </div>
