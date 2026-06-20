@@ -1,12 +1,14 @@
 import { getUserHousehold, getHouseholdMembers, getPendingDepartureRequest } from '@/services/household.service'
 import { getBills } from '@/services/bill.service'
 import { getChores } from '@/services/chore.service'
+import { getRules, getAcknowledgements } from '@/services/rule.service'
 import { getNotificationsForUser } from '@/services/notifications.service'
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import InviteSection from '@/components/household/InviteSection'
 import PlanSection from '@/components/household/PlanSection'
+import HouseholdSummaryCard from '@/components/household/HouseholdSummaryCard'
 import DepartureRequestBanner from '@/components/household/DepartureRequestBanner'
 import NotificationBanner from '@/components/household/NotificationBanner'
 
@@ -28,13 +30,17 @@ export default async function DashboardPage({
   } = await supabase.auth.getUser()
   if (!user) redirect('/login')
 
-  const [members, pendingDeparture, bills, chores, notifications] = await Promise.all([
+  const [members, pendingDeparture, bills, chores, notifications, rules] = await Promise.all([
     getHouseholdMembers(household.id),
     getPendingDepartureRequest(household.id),
     getBills(household.id),
     getChores(household.id),
     getNotificationsForUser(household.id),
+    getRules(household.id),
   ])
+
+  const activeRules = rules.filter((r) => r.active)
+  const acknowledgements = await getAcknowledgements(activeRules.map((r) => r.id))
   const { upgraded } = await searchParams
 
   const today = new Date().toISOString().split('T')[0]
@@ -51,6 +57,39 @@ export default async function DashboardPage({
   ).length
 
   const unassignedChores = chores.filter((c) => c.current_assignment === null).length
+
+  const isOwner = household.owner_user_id === user.id
+
+  const memberSummaries = members.map((member) => {
+    const memberShares = bills.flatMap((b) => b.shares ?? []).filter((s) => s.user_id === member.user_id)
+    const unpaidShares = memberShares.filter((s) => !s.paid_status)
+
+    const memberAssignments = chores
+      .filter((c) => c.current_assignment !== null && c.current_assignment.assigned_user_id === member.user_id)
+      .map((c) => c.current_assignment!)
+
+    const overdueAssignments = memberAssignments.filter((a) => a.status === 'pending' && a.due_date < today)
+    const missedAssignments = memberAssignments.filter((a) => a.status === 'missed')
+    const pendingAssignments = memberAssignments.filter((a) => a.status === 'pending')
+
+    const memberAckRuleIds = new Set(
+      acknowledgements.filter((a) => a.user_id === member.user_id).map((a) => a.rule_id)
+    )
+
+    const rawName = member.profile?.name ?? member.profile?.email?.split('@')[0] ?? 'Roommate'
+    const parts = rawName.trim().split(/\s+/)
+    const displayName =
+      parts.length === 1 ? rawName : `${parts[0]} ${parts[parts.length - 1][0].toUpperCase()}.`
+
+    return {
+      userId: member.user_id,
+      name: displayName,
+      role: member.role,
+      bills: { unpaidCount: unpaidShares.length, unpaidCents: unpaidShares.reduce((s, x) => s + x.amount_cents, 0) },
+      chores: { pending: pendingAssignments.length, overdue: overdueAssignments.length, missed: missedAssignments.length },
+      rules: { acknowledged: memberAckRuleIds.size, total: activeRules.length },
+    }
+  })
 
   const monthlyPriceId = process.env.STRIPE_PRICE_MONTHLY ?? ''
   const yearlyPriceId = process.env.STRIPE_PRICE_YEARLY ?? ''
@@ -112,6 +151,10 @@ export default async function DashboardPage({
         <p className="text-stone-600 text-sm mt-1">Your household dashboard</p>
       </div>
 
+      {isOwner && (
+        <HouseholdSummaryCard members={memberSummaries} currentUserId={user.id} />
+      )}
+
       <div className="grid grid-cols-2 gap-3 mb-8">
         {stats.map(({ value, label, alert, href }) => (
           <Link key={label} href={href} className="bg-stone-50 border border-stone-200 rounded-2xl p-4 hover:bg-stone-100 transition-colors">
@@ -136,7 +179,7 @@ export default async function DashboardPage({
 
         <PlanSection
           planTier={household.plan_tier}
-          isOwner={household.owner_user_id === user.id}
+          isOwner={isOwner}
           hasStripeCustomer={!!household.stripe_customer_id}
           monthlyPriceId={monthlyPriceId}
           yearlyPriceId={yearlyPriceId}
