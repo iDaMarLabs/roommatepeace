@@ -3,6 +3,7 @@ import { createAdminClient } from '@/lib/supabase/admin'
 import { seedDefaultChores } from '@/services/chore.service'
 import { seedDefaultBills, recalculateSharesForNewMember } from '@/services/bill.service'
 import { seedDefaultRules } from '@/services/rule.service'
+import { createNotification } from '@/services/notifications.service'
 import type { Household, HouseholdMember, DepartureRequest } from '@/types'
 
 export async function getUserHousehold(): Promise<Household | null> {
@@ -195,6 +196,26 @@ export async function requestLeave(
         amount_paid_cents: p.amountPaidCents,
         payment_note: p.paymentNote ?? null,
       }))
+    )
+  }
+
+  const { data: household } = await supabase
+    .from('households')
+    .select('owner_user_id')
+    .eq('id', householdId)
+    .single()
+
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('name')
+    .eq('id', user.id)
+    .maybeSingle()
+
+  if (household?.owner_user_id && household.owner_user_id !== user.id) {
+    await createNotification(
+      householdId,
+      household.owner_user_id,
+      `${profile?.name ?? 'A member'} has requested to leave the household.`
     )
   }
 
