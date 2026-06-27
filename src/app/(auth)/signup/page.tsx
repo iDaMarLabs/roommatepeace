@@ -132,6 +132,13 @@ function SignupForm() {
         <p className="text-xs text-stone-400 text-center">
           Accounts that don't join or create a household within 24 hours are automatically removed.
         </p>
+
+        <p className="text-center text-xs text-stone-400 mt-3">
+          By creating an account you agree to our{' '}
+          <Link href="/terms" className="underline hover:text-stone-600">Terms of Service</Link>
+          {' '}and{' '}
+          <Link href="/privacy" className="underline hover:text-stone-600">Privacy Policy</Link>.
+        </p>
       </div>
 
       <p className="text-center text-stone-500 text-sm mt-6">

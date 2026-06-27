@@ -189,6 +189,48 @@ Captured from actual code on 2026-05-18. These are decisions already made and in
 
 ---
 
+## 16. Google Translate via Cookie (Not Next-Intl)
+
+**Decision:** Use Google Translate's free widget + `googtrans` cookie to deliver EN/ES/FR/中文 on the landing page. A custom `LanguageSwitcher` client component drives language selection by writing the cookie and reloading the page.
+
+**Why:** Zero infrastructure cost. No need to duplicate content, maintain translation strings, or add `next-intl`. The target audience (college-age, shared households) overlaps with non-English speakers primarily through the landing and signup pages.
+
+**Consequences:**
+- Google Translate scripts are loaded in root layout via `next/script strategy="afterInteractive"`
+- `LanguageSwitcher` clears the `googtrans` cookie on the subdomain, domain, and root domain before writing the new value — required because www.roommatepeace.com vs roommatepeace.com can split cookie scope
+- Translation does not apply in a meaningful way inside the authenticated dashboard (in-app content is user-generated English text)
+- `<div id="google_translate_element" />` exists in root layout body but is hidden — the custom switcher drives the experience instead of the default GT widget
+
+---
+
+## 17. Plan-Aware Signup and Setup Flow
+
+**Decision:** Landing page pricing CTAs pass `?plan=monthly` or `?plan=yearly` through the entire signup → email confirm → setup → checkout chain without extra session storage.
+
+**Why:** Reduces friction. Users who click a pricing CTA on the landing page go directly to Stripe Checkout after confirming their email and naming their household — no separate "upgrade" step.
+
+**Consequences:**
+- `/signup` reads `?plan=`, shows a banner, and forwards `?plan=` to the post-confirm redirect path (`/setup?plan=...`)
+- `/setup` reads `?plan=`, shows a banner, and calls `POST /api/checkout` with `{ plan }` immediately after `POST /api/households` succeeds
+- If checkout redirect fails, the user lands on `/dashboard` on the free plan — not a blocker
+- The `?plan=` param is a URL query param only; it is not stored in the DB or session until Stripe webhook fires
+
+---
+
+## 18. Owner-Only Force-Complete for Departure Requests
+
+**Decision:** The household owner can bypass the normal acknowledgement quorum and force-complete a pending departure request via `forceCompleteLeave` / `forceLeaveAction`.
+
+**Why:** Acknowledgement quorum can stall indefinitely if a member stops responding. The owner needs an escape hatch.
+
+**Consequences:**
+- `forceCompleteLeave` in `household.service.ts` calls `executeLeave` directly after verifying the caller is the owner
+- `forceLeaveAction` in `dashboard/actions.ts` calls it and redirects to `/dashboard`
+- The departing member is removed; their chore assignments cleared; their bill shares redistributed — same as normal `executeLeave`
+- `DepartureRequestBanner` renders the force-complete button only to the owner
+
+---
+
 ## 10. Cut Features (Do Not Revisit Without Strong Reason)
 
 | Feature | Decision |
