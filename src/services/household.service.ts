@@ -246,13 +246,15 @@ export async function acknowledgeLeave(
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return { executed: false, error: 'Not authenticated' }
 
-  const { error: ackError } = await supabase
+  const admin = createAdminClient()
+
+  const { error: ackError } = await admin
     .from('departure_acknowledgements')
     .insert({ departure_request_id: departureRequestId, member_user_id: user.id })
 
   if (ackError) return { executed: false, error: 'Failed to acknowledge' }
 
-  const { data: request } = await supabase
+  const { data: request } = await admin
     .from('departure_requests')
     .select('household_id, requesting_user_id')
     .eq('id', departureRequestId)
@@ -261,13 +263,13 @@ export async function acknowledgeLeave(
 
   if (!request) return { executed: false }
 
-  const { count: remainingCount } = await supabase
+  const { count: remainingCount } = await admin
     .from('household_members')
     .select('id', { count: 'exact', head: true })
     .eq('household_id', request.household_id)
     .neq('user_id', request.requesting_user_id)
 
-  const { count: ackCount } = await supabase
+  const { count: ackCount } = await admin
     .from('departure_acknowledgements')
     .select('id', { count: 'exact', head: true })
     .eq('departure_request_id', departureRequestId)

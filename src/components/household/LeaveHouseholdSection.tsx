@@ -62,28 +62,36 @@ export default function LeaveHouseholdSection({
     const acks = existingRequest.acknowledgements ?? []
     const remaining = memberCount - 1
     const ackedCount = acks.length
+    const allAcknowledged = ackedCount >= remaining
 
     return (
-      <div className="bg-white border border-stone-200 rounded-2xl p-6 space-y-4">
+      <div className="bg-amber-50 border border-amber-200 rounded-2xl p-6 space-y-4">
         <div className="flex items-start gap-3">
           <Clock size={18} className="text-amber-500 mt-0.5 shrink-0" />
           <div>
-            <p className="text-sm font-medium text-stone-900">Leave request pending</p>
-            <p className="text-xs text-stone-500 mt-0.5">
-              {ackedCount} of {remaining} member{remaining !== 1 ? 's' : ''} acknowledged
+            <p className="text-sm font-semibold text-stone-900">Leave request submitted</p>
+            <p className="text-sm text-stone-600 mt-1">
+              {allAcknowledged
+                ? 'All members have acknowledged. Your departure is being finalized.'
+                : `You will be removed from the household once all remaining members acknowledge your departure. ${ackedCount} of ${remaining} member${remaining !== 1 ? 's' : ''} have acknowledged so far.`}
+            </p>
+            <p className="text-xs text-stone-500 mt-2">
+              Other members will see a banner on their dashboard asking them to acknowledge. You can cancel this request at any time before all members have acknowledged.
             </p>
           </div>
         </div>
 
         {existingRequest.bill_payments && existingRequest.bill_payments.length > 0 && (
           <div className="space-y-2">
-            <p className="text-xs font-medium text-stone-600 uppercase tracking-wide">Bills pending discussion</p>
+            <p className="text-xs font-medium text-stone-600 uppercase tracking-wide">Bills you reported paying</p>
             {existingRequest.bill_payments.map((bp) => (
-              <div key={bp.id} className="text-sm text-stone-700 bg-stone-50 rounded-lg px-3 py-2 space-y-0.5">
+              <div key={bp.id} className="text-sm text-stone-700 bg-white border border-stone-200 rounded-lg px-3 py-2 space-y-0.5">
                 <div className="flex justify-between">
                   <span>{bp.bill?.title ?? 'Bill'}</span>
                   <span className="text-stone-500">
-                    {formatCents(bp.amount_paid_cents)} paid of {formatCents(bp.bill?.amount_cents ?? 0)}
+                    {bp.amount_paid_cents > 0
+                      ? `${formatCents(bp.amount_paid_cents)} paid of ${formatCents(bp.bill?.amount_cents ?? 0)}`
+                      : 'Nothing paid yet'}
                   </span>
                 </div>
                 {bp.payment_note && (
@@ -94,15 +102,12 @@ export default function LeaveHouseholdSection({
           </div>
         )}
 
-        <div className="space-y-1">
-          <p className="text-xs font-medium text-stone-600 uppercase tracking-wide">Member acknowledgements</p>
-          {existingRequest.acknowledgements?.map((a) => (
-            <div key={a.id} className="flex items-center gap-2 text-sm text-stone-600">
-              <CheckCircle size={14} className="text-emerald-500" />
-              <span className="text-xs">{a.member_user_id}</span>
-            </div>
-          ))}
-        </div>
+        {ackedCount > 0 && (
+          <div className="flex items-center gap-2 text-xs text-emerald-700">
+            <CheckCircle size={13} />
+            <span>{ackedCount} member{ackedCount !== 1 ? 's have' : ' has'} acknowledged</span>
+          </div>
+        )}
 
         <button
           onClick={() => {
@@ -110,7 +115,7 @@ export default function LeaveHouseholdSection({
               await cancelLeaveAction(existingRequest.id)
             })
           }}
-          disabled={isPending}
+          disabled={isPending || allAcknowledged}
           className="text-sm text-red-600 hover:text-red-700 underline disabled:opacity-50"
         >
           Cancel leave request
