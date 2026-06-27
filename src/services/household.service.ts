@@ -174,13 +174,12 @@ export async function requestLeave(
 
   const admin = createAdminClient()
 
-  // Clear any old cancelled/completed requests before inserting
+  // Clear any prior requests for this user before inserting a fresh one
   await admin
     .from('departure_requests')
     .delete()
     .eq('household_id', householdId)
     .eq('requesting_user_id', user.id)
-    .neq('status', 'pending')
 
   const { data: request, error } = await admin
     .from('departure_requests')
