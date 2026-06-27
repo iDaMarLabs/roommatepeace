@@ -122,18 +122,29 @@ export async function getPendingDepartureRequest(
   householdId: string
 ): Promise<DepartureRequest | null> {
   const admin = createAdminClient()
-  const { data } = await admin
+
+  const { data: request, error: reqError } = await admin
     .from('departure_requests')
-    .select(`
-      *,
-      profile:profiles(id, name, email),
-      bill_payments:departure_bill_payments(*, bill:bills(id, title, amount_cents)),
-      acknowledgements:departure_acknowledgements(*)
-    `)
+    .select('*')
     .eq('household_id', householdId)
     .eq('status', 'pending')
+    .limit(1)
     .maybeSingle()
-  return (data as unknown as DepartureRequest) ?? null
+
+  if (reqError || !request) return null
+
+  const [profileResult, billPaymentsResult, acksResult] = await Promise.all([
+    admin.from('profiles').select('id, name, email').eq('id', request.requesting_user_id).maybeSingle(),
+    admin.from('departure_bill_payments').select('*, bill:bills(id, title, amount_cents)').eq('departure_request_id', request.id),
+    admin.from('departure_acknowledgements').select('*').eq('departure_request_id', request.id),
+  ])
+
+  return {
+    ...request,
+    profile: profileResult.data ?? undefined,
+    bill_payments: billPaymentsResult.data ?? [],
+    acknowledgements: acksResult.data ?? [],
+  } as unknown as DepartureRequest
 }
 
 export async function requestLeave(
@@ -232,7 +243,8 @@ export async function cancelLeave(departureRequestId: string): Promise<void> {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return
 
-  await supabase
+  const admin = createAdminClient()
+  await admin
     .from('departure_requests')
     .update({ status: 'cancelled' })
     .eq('id', departureRequestId)
