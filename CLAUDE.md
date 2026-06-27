@@ -52,7 +52,7 @@
 
 **Roommate Peace** is a conflict-reduction app for roommates. Not a home organizer, not a task manager. Positioning: "Stop arguing about chores and bills." The wedge is visible accountability and explicit agreements.
 
-## Real Stack (as of 2026-06-14)
+## Real Stack (as of 2026-06-27)
 
 | Layer            | Tool / Version                          |
 |------------------|-----------------------------------------|
@@ -132,6 +132,8 @@ CRON_SECRET                     # bearer token for /api/cron/reminders
 6. `notifications.service.ts` is implemented — `createNotification`, `getNotificationsForUser`, `dismissNotification`. `createNotification` uses `createAdminClient()` because it runs before the new member has household membership (pre-join context). Any system-level write to `bill_shares` or any read that runs before a user has membership must also use `createAdminClient()`.
 7. No comments unless the WHY is non-obvious. No emojis. No extra features beyond the task.
 8. No Prisma — all DB access is through the Supabase JS client.
+9. Google Translate is wired in `src/app/layout.tsx` via `next/script strategy="afterInteractive"`. Do not add a manual `<head>` element. The `<div id="google_translate_element" />` is in the body. The `LanguageSwitcher` component at `src/components/LanguageSwitcher.tsx` drives language selection via the `googtrans` cookie.
+10. Legal pages (`/terms`, `/privacy`) live under `src/app/(legal)/` with their own layout. Do not put legal content in the `(auth)` or `(dashboard)` route groups.
 
 ## Next.js 16 App Router Rules (from node_modules/next/dist/docs)
 

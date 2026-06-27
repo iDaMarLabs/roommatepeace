@@ -1,6 +1,6 @@
 # Roommate Peace — What Is and Is Not Built
 
-Updated 2026-06-14.
+Updated 2026-06-27.
 
 ## Built and Working
 
@@ -13,9 +13,12 @@ Updated 2026-06-14.
 - Forgot password (`/forgot-password`) — sends Supabase reset email via Resend
 - Reset password (`/reset-password`) — exchanges code, sets new password
 - Landing page (`/`) detects `?code=` param from password reset email and forwards to `/auth/callback`
+- 24-hour orphan account purge: daily cron identifies auth users with no household membership older than 24hrs and deletes them via `supabase.auth.admin.deleteUser` (runs in `reminder.service.ts`)
 
 ### Landing Page
-- Public marketing page at `/` with hero, 3 feature cards, and CTAs
+- Public marketing page at `/` with hero, 3 feature cards, pricing section, and footer with legal links
+- `LanguageSwitcher` in nav header (EN/ES/FR/中文 via Google Translate cookie)
+- Pricing section shows Free and Premium tiers with CTAs that pass `?plan=monthly` or `?plan=yearly` to `/signup`
 - Authenticated users redirected to `/dashboard`
 - Logo on auth pages (login, signup, forgot/reset password) links to `/`
 
@@ -40,6 +43,7 @@ Updated 2026-06-14.
 
 ### Dashboard
 - Household name with inline Premium badge (if applicable)
+- `HouseholdSummaryCard` — owner-only table showing per-member bills/chores/rules status at a glance
 - 4 stat cards (you owe, unpaid bills, overdue chores, chores need pickup) — each clickable to the relevant section
 - `NotificationBanner` — renders dismissible amber banners from `household_notifications`; dismiss is optimistic (client state) + persisted via `dismissNotificationAction`
 - `InviteSection` — copyable invite link, QR code, regenerate button
@@ -96,6 +100,26 @@ Updated 2026-06-14.
 - Cancel leave request
 - Rename household
 - Owner with sole membership deletes household instead of leaving
+- Owner can force-complete a pending departure request (bypass remaining acknowledgements) via `forceLeaveAction`
+
+### Legal Pages
+- `/terms` — Terms of Service (iDaMar Labs LLC, Ohio LLC; effective June 20, 2026)
+- `/privacy` — Privacy Policy (effective June 20, 2026)
+- Both served under `(legal)` route group with its own layout (white bg, logo header, footer)
+- Footer links to `/terms` and `/privacy` on landing page and legal pages
+- Signup page links to Terms and Privacy with consent notice
+
+### Google Translate Integration
+- `LanguageSwitcher` component in landing page nav — cookie-based language picker (EN/ES/FR/中文)
+- Google Translate widget initialized in root layout via `next/script` (`strategy="afterInteractive"`)
+- `<div id="google_translate_element" />` in root layout body
+- Language selection persists via `googtrans` cookie; handles www + root domain cookie clearing
+
+### Premium Checkout Flow from Landing Page
+- Landing page pricing CTAs pass `?plan=monthly` or `?plan=yearly` to `/signup`
+- Signup page shows plan-selection banner and forwards `?plan=` param through confirmation
+- `/setup` accepts `?plan=` and calls `/api/checkout` automatically after household creation
+- User lands on Stripe Checkout immediately after naming their household
 
 ### Email Reminders (Resend)
 - `GET /api/cron/reminders` — bearer-token protected via `CRON_SECRET`
