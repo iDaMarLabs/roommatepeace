@@ -188,7 +188,7 @@ export async function requestLeave(
     .select()
     .single()
 
-  if (error || !request) return { error: 'Failed to create departure request' }
+  if (error || !request) return { error: `Failed to create departure request: ${error?.message ?? 'no data returned'}` }
 
   if (billPayments.length > 0) {
     await admin.from('departure_bill_payments').insert(
