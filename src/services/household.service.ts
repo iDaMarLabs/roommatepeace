@@ -172,24 +172,26 @@ export async function requestLeave(
     return { left: true }
   }
 
+  const admin = createAdminClient()
+
   // Clear any old cancelled/completed requests before inserting
-  await supabase
+  await admin
     .from('departure_requests')
     .delete()
     .eq('household_id', householdId)
     .eq('requesting_user_id', user.id)
     .neq('status', 'pending')
 
-  const { data: request, error } = await supabase
+  const { data: request, error } = await admin
     .from('departure_requests')
-    .insert({ household_id: householdId, requesting_user_id: user.id })
+    .insert({ household_id: householdId, requesting_user_id: user.id, status: 'pending' })
     .select()
     .single()
 
   if (error || !request) return { error: 'Failed to create departure request' }
 
   if (billPayments.length > 0) {
-    await supabase.from('departure_bill_payments').insert(
+    await admin.from('departure_bill_payments').insert(
       billPayments.map((p) => ({
         departure_request_id: request.id,
         bill_id: p.billId,
