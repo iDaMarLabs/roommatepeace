@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useTransition } from 'react'
+import { useRouter } from 'next/navigation'
 import { CheckCircle, Clock, XCircle } from 'lucide-react'
 import { requestLeaveAction, cancelLeaveAction } from '@/app/(dashboard)/settings/actions'
 import type { DepartureRequest } from '@/types'
@@ -42,6 +43,7 @@ export default function LeaveHouseholdSection({
     Object.fromEntries(unpaidBills.map((b) => [b.id, '']))
   )
   const [isPending, startTransition] = useTransition()
+  const router = useRouter()
 
   if (isOwner && memberCount > 1) {
     return (
@@ -141,7 +143,11 @@ export default function LeaveHouseholdSection({
         householdId,
         billPayments as { billId: string; amountPaidCents: number }[]
       )
-      if (result?.error) setError(result.error)
+      if (result?.error) {
+        setError(result.error)
+      } else {
+        router.refresh()
+      }
     })
   }
 
