@@ -121,8 +121,8 @@ export async function joinHousehold(
 export async function getPendingDepartureRequest(
   householdId: string
 ): Promise<DepartureRequest | null> {
-  const supabase = await createClient()
-  const { data } = await supabase
+  const admin = createAdminClient()
+  const { data } = await admin
     .from('departure_requests')
     .select(`
       *,
@@ -213,11 +213,15 @@ export async function requestLeave(
     .maybeSingle()
 
   if (household?.owner_user_id && household.owner_user_id !== user.id) {
-    await createNotification(
-      householdId,
-      household.owner_user_id,
-      `${profile?.name ?? 'A member'} has requested to leave the household.`
-    )
+    const leaveMsg = `${profile?.name ?? 'A member'} has requested to leave the household.`
+    // Remove any prior (stale) leave-request notification before creating a fresh one
+    await admin
+      .from('household_notifications')
+      .delete()
+      .eq('household_id', householdId)
+      .eq('recipient_user_id', household.owner_user_id)
+      .eq('message', leaveMsg)
+    await createNotification(householdId, household.owner_user_id, leaveMsg)
   }
 
   return { pending: true }
