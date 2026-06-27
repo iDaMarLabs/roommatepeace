@@ -168,8 +168,11 @@ export default async function LandingPage({
       </section>
 
       {/* Footer */}
-      <footer className="border-t border-stone-200 px-6 py-6 text-center text-stone-400 text-sm">
-        © {new Date().getFullYear()} Roommate Peace
+      <footer className="text-center text-xs text-stone-400 py-8 border-t border-stone-200 mt-12">
+        © 2026 iDaMar Labs LLC{' '}·{' '}
+        <Link href="/terms" className="underline hover:text-stone-600">Terms of Service</Link>
+        {' '}·{' '}
+        <Link href="/privacy" className="underline hover:text-stone-600">Privacy Policy</Link>
       </footer>
     </div>
   );
