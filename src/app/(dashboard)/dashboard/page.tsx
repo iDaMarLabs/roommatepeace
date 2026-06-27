@@ -128,6 +128,7 @@ export default async function DashboardPage({
           departureRequest={pendingDeparture}
           currentUserId={user.id}
           memberCount={members.length}
+          isOwner={isOwner}
         />
       )}
 

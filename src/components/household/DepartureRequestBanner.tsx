@@ -14,9 +14,10 @@ interface Props {
   departureRequest: DepartureRequest
   currentUserId: string
   memberCount: number
+  isOwner: boolean
 }
 
-export default function DepartureRequestBanner({ departureRequest, currentUserId, memberCount }: Props) {
+export default function DepartureRequestBanner({ departureRequest, currentUserId, memberCount, isOwner }: Props) {
   const [isPending, startTransition] = useTransition()
 
   const name =
@@ -42,11 +43,14 @@ export default function DepartureRequestBanner({ departureRequest, currentUserId
         <LogOut size={18} className="text-amber-600 mt-0.5 shrink-0" />
         <div>
           <p className="text-sm font-semibold text-stone-900">
-            {name} has requested to leave the household.
+            {isOwner
+              ? `Action required: ${name} has requested to leave the household.`
+              : `${name} has requested to leave the household.`}
           </p>
           <p className="text-xs text-stone-600 mt-0.5">
-            {ackedCount} of {remaining} member{remaining !== 1 ? 's' : ''} acknowledged —
-            departure completes when all remaining members acknowledge.
+            {isOwner
+              ? `As the household owner, your acknowledgment is required to finalize this departure. ${ackedCount} of ${remaining} member${remaining !== 1 ? 's' : ''} have acknowledged so far.`
+              : `${ackedCount} of ${remaining} member${remaining !== 1 ? 's' : ''} acknowledged — departure completes when all remaining members acknowledge.`}
           </p>
         </div>
       </div>
@@ -101,7 +105,7 @@ export default function DepartureRequestBanner({ departureRequest, currentUserId
         >
           <span className="flex items-center gap-2">
             {isPending ? <Clock size={14} /> : <CheckCircle size={14} />}
-            {isPending ? 'Saving...' : 'I acknowledge this departure'}
+            {isPending ? 'Saving...' : isOwner ? 'Approve departure' : 'I acknowledge this departure'}
           </span>
         </Button>
       )}
