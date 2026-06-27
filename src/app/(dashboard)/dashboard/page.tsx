@@ -129,6 +129,7 @@ export default async function DashboardPage({
           currentUserId={user.id}
           memberCount={members.length}
           isOwner={isOwner}
+          members={members.filter((m) => m.user_id !== pendingDeparture.requesting_user_id)}
         />
       )}
 

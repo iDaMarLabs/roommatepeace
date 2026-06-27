@@ -282,6 +282,37 @@ export async function acknowledgeLeave(
   return { executed: false }
 }
 
+export async function forceCompleteLeave(
+  departureRequestId: string
+): Promise<{ error?: string }> {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { error: 'Not authenticated' }
+
+  const admin = createAdminClient()
+
+  const { data: request } = await admin
+    .from('departure_requests')
+    .select('household_id, requesting_user_id')
+    .eq('id', departureRequestId)
+    .eq('status', 'pending')
+    .maybeSingle()
+
+  if (!request) return { error: 'Request not found' }
+
+  const { data: member } = await admin
+    .from('household_members')
+    .select('role')
+    .eq('household_id', request.household_id)
+    .eq('user_id', user.id)
+    .maybeSingle()
+
+  if (member?.role !== 'owner') return { error: 'Only the household owner can override acknowledgements' }
+
+  await executeLeave(request.household_id, request.requesting_user_id, departureRequestId)
+  return {}
+}
+
 async function executeLeave(
   householdId: string,
   leavingUserId: string,
