@@ -9,8 +9,8 @@ import LanguageSwitcher from '@/components/LanguageSwitcher'
 
 const links = [
   { href: '/dashboard', label: 'Dashboard', icon: Home },
-  { href: '/chores', label: 'Chores', icon: CheckSquare },
   { href: '/bills', label: 'Bills', icon: Receipt },
+  { href: '/chores', label: 'Chores', icon: CheckSquare },
   { href: '/rules', label: 'Rules', icon: BookOpen },
   { href: '/settings', label: 'Settings', icon: Settings },
 ]
