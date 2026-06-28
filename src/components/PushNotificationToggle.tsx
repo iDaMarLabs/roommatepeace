@@ -88,7 +88,19 @@ export default function PushNotificationToggle() {
     }
   }
 
-  if (state === 'unsupported') return null
+  if (state === 'unsupported') {
+    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent)
+    return (
+      <div>
+        <p className="text-sm font-medium text-stone-900">Notifications</p>
+        <p className="text-xs text-stone-500 mt-0.5">
+          {isIOS
+            ? 'To enable push notifications on iPhone, tap the Share button in Safari and choose "Add to Home Screen." Then open the app from your home screen and enable notifications here.'
+            : 'Push notifications are not supported in this browser.'}
+        </p>
+      </div>
+    )
+  }
 
   if (state === 'denied') {
     return (
