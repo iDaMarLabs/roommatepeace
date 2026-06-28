@@ -88,6 +88,8 @@ export default function PushNotificationToggle() {
     }
   }
 
+  if (state === 'loading') return null
+
   if (state === 'unsupported') {
     const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent)
     return (
