@@ -1,15 +1,17 @@
 import { createAdminClient } from '@/lib/supabase/admin'
-import { sendReminderEmail, type ReminderItem } from '@/services/email.service'
+import { sendPushToUser } from '@/services/push.service'
 
-interface ReminderItemWithRef extends ReminderItem {
+interface ReminderItem {
+  type: 'chore' | 'bill'
+  title: string
+  dueLabel: string
+  amountCents?: number
   referenceId: string
 }
 
 interface UserReminder {
   userId: string
-  email: string
-  name: string | null
-  items: ReminderItemWithRef[]
+  items: ReminderItem[]
 }
 
 function todayAndTomorrow(): { todayStr: string; tomorrowStr: string } {
@@ -65,6 +67,21 @@ export async function deleteOrphanedAccounts(): Promise<number> {
   return deleted
 }
 
+function buildPushBody(items: ReminderItem[]): string {
+  if (items.length === 1) {
+    const item = items[0]
+    return item.type === 'chore'
+      ? `Chore due ${item.dueLabel}: ${item.title}`
+      : `Bill due ${item.dueLabel}: ${item.title}`
+  }
+  const chores = items.filter(i => i.type === 'chore').length
+  const bills = items.filter(i => i.type === 'bill').length
+  const parts: string[] = []
+  if (chores > 0) parts.push(`${chores} chore${chores > 1 ? 's' : ''}`)
+  if (bills > 0) parts.push(`${bills} bill${bills > 1 ? 's' : ''}`)
+  return `You have ${parts.join(' and ')} due soon.`
+}
+
 export async function sendDailyReminders(): Promise<{ sent: number; errors: number }> {
   const supabase = createAdminClient()
   const { todayStr, tomorrowStr } = todayAndTomorrow()
@@ -72,11 +89,11 @@ export async function sendDailyReminders(): Promise<{ sent: number; errors: numb
 
   const userMap = new Map<string, UserReminder>()
 
-  function getOrCreate(userId: string, email: string, name: string | null): UserReminder {
-    if (!userMap.has(email)) {
-      userMap.set(email, { userId, email, name, items: [] })
+  function getOrCreate(userId: string): UserReminder {
+    if (!userMap.has(userId)) {
+      userMap.set(userId, { userId, items: [] })
     }
-    return userMap.get(email)!
+    return userMap.get(userId)!
   }
 
   function dueLabel(dateStr: string): string {
@@ -85,16 +102,16 @@ export async function sendDailyReminders(): Promise<{ sent: number; errors: numb
 
   const { data: choreAssignments } = await supabase
     .from('chore_assignments')
-    .select('id, due_date, chore:chores(title), profile:profiles(id, email, name)')
+    .select('id, due_date, chore:chores(title), profile:profiles(id, name)')
     .in('due_date', dueDates)
     .eq('status', 'pending')
 
   for (const row of choreAssignments ?? []) {
-    const profile = row.profile as unknown as { id: string; email: string; name: string | null } | null
+    const profile = row.profile as unknown as { id: string; name: string | null } | null
     const chore = row.chore as unknown as { title: string } | null
-    if (!profile?.email || !chore) continue
+    if (!profile?.id || !chore) continue
 
-    getOrCreate(profile.id, profile.email, profile.name).items.push({
+    getOrCreate(profile.id).items.push({
       type: 'chore',
       title: chore.title,
       dueLabel: dueLabel(row.due_date),
@@ -104,16 +121,16 @@ export async function sendDailyReminders(): Promise<{ sent: number; errors: numb
 
   const { data: billShares } = await supabase
     .from('bill_shares')
-    .select('id, amount_cents, bill:bills(title, due_date), profile:profiles(id, email, name)')
+    .select('id, amount_cents, bill:bills(title, due_date), profile:profiles(id, name)')
     .eq('paid_status', false)
 
   for (const row of billShares ?? []) {
-    const profile = row.profile as unknown as { id: string; email: string; name: string | null } | null
+    const profile = row.profile as unknown as { id: string; name: string | null } | null
     const bill = row.bill as unknown as { title: string; due_date: string } | null
-    if (!profile?.email || !bill) continue
+    if (!profile?.id || !bill) continue
     if (!dueDates.includes(bill.due_date)) continue
 
-    getOrCreate(profile.id, profile.email, profile.name).items.push({
+    getOrCreate(profile.id).items.push({
       type: 'bill',
       title: bill.title,
       dueLabel: dueLabel(bill.due_date),
@@ -134,15 +151,21 @@ export async function sendDailyReminders(): Promise<{ sent: number; errors: numb
   for (const reminder of userMap.values()) {
     if (reminder.items.length === 0) continue
     try {
-      await sendReminderEmail(reminder.email, reminder.name, reminder.items)
-      sent++
-      for (const item of reminder.items) {
-        eventRows.push({
-          user_id: reminder.userId,
-          type: item.type,
-          reference_id: item.referenceId,
-          channel: 'email',
-        })
+      const result = await sendPushToUser(reminder.userId, {
+        title: 'Roommate Peace',
+        body: buildPushBody(reminder.items),
+        url: '/dashboard',
+      })
+      if (result.sent > 0) {
+        sent++
+        for (const item of reminder.items) {
+          eventRows.push({
+            user_id: reminder.userId,
+            type: item.type,
+            reference_id: item.referenceId,
+            channel: 'push',
+          })
+        }
       }
     } catch {
       errors++
