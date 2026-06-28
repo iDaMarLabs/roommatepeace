@@ -131,14 +131,13 @@ export default function PushNotificationToggle() {
       </div>
       <button
         onClick={state === 'enabled' ? disable : enable}
-        disabled={state === 'loading'}
-        className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors disabled:opacity-50 ${
+        className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
           state === 'enabled'
             ? 'bg-stone-100 text-stone-700 hover:bg-stone-200'
             : 'bg-emerald-500 text-white hover:bg-emerald-600'
         }`}
       >
-        {state === 'loading' ? 'Loading...' : state === 'enabled' ? 'Turn off' : 'Turn on'}
+        {state === 'enabled' ? 'Turn off' : 'Turn on'}
       </button>
     </div>
   )
